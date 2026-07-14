@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ladla Rent 24x7</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;800&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --saffron: #FF6B00; --saffron-light: #FF8C38;
+      --deep: #1A1A2E; --card-bg: #FFFFFF; --page-bg: #F6F7FB;
+      --text: #1A1A2E; --muted: #6B7280; --green: #16A34A;
+      --green-dk: #15803D; --border: #E5E7EB;
+      --shadow: 0 4px 20px rgba(0,0,0,0.08); --radius: 14px;
+      --blue: #2563EB; --blue-light: #EFF6FF;
+    }
+    body { font-family: 'Noto Sans', sans-serif; background: var(--page-bg); color: var(--text); min-height: 100vh; }
+
+    /* HEADER */
+    header { background: var(--deep); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+    .logo { font-family: 'Baloo 2', cursive; font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    .logo span { color: var(--saffron); }
+    .badge { background: var(--saffron); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-left: 10px; vertical-align: middle; letter-spacing: 0.5px; }
+    .header-btns { display: flex; gap: 10px; }
+    .hdr-btn { background: transparent; border: 1.5px solid rgba(255,255,255,0.25); color: #fff; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-family: 'Noto Sans', sans-serif; font-weight: 600; transition: all 0.2s; }
+    .hdr-btn:hover { background: var(--saffron); border-color: var(--saffron); }
+    .hdr-btn.active-tab { background: var(--saffron); border-color: var(--saffron); }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, var(--deep) 0%, #16213E 100%); color: #fff; text-align: center; padding: 50px 20px 40px; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; width: 400px; height: 400px; background: var(--saffron); opacity: 0.08; border-radius: 50%; top: -100px; right: -100px; }
+    .hero h1 { font-family: 'Baloo 2', cursive; font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+    .hero h1 em { color: var(--saffron); font-style: normal; }
+    .hero p { font-size: 1rem; color: #CBD5E1; max-width: 500px; margin: 0 auto 24px; }
+    .hero-stats { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat .num { font-family: 'Baloo 2', cursive; font-size: 1.8rem; font-weight: 800; color: var(--saffron); }
+    .stat .lbl { font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* TABS */
+    .tab-bar { background: #fff; border-bottom: 2px solid var(--border); display: flex; }
+    .tab { flex: 1; padding: 16px; text-align: center; cursor: pointer; font-size: 0.95rem; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+    .tab:hover { color: var(--saffron); }
+    .tab.active { color: var(--saffron); border-bottom-color: var(--saffron); }
+    .tab-icon { font-size: 1.3rem; display: block; margin-bottom: 2px; }
+
+    /* PAGE SECTIONS */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* FILTER BAR */
+    .filter-bar { background: #fff; border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 0.85rem; color: var(--muted); margin-right: 4px; font-weight: 500; }
+    .filter-btn { background: var(--page-bg); border: 1.5px solid var(--border); color: var(--text); padding: 7px 18px; border-radius: 30px; cursor: pointer; font-size: 0.88rem; font-family: 'Noto Sans', sans-serif; font-weight: 500; transition: all 0.2s; }
+    .filter-btn:hover { border-color: var(--saffron); color: var(--saffron); }
+    .filter-btn.active { background: var(--saffron); border-color: var(--saffron); color: #fff; }
+
+    /* MAIN GRID */
+    main { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+    .section-title { font-family: 'Baloo 2', cursive; font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; color: var(--deep); }
+    .section-title span { color: var(--saffron); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; }
+
+    /* VEHICLE CARD */
+    .card { background: var(--card-bg); border-radius: var(--radius); border: 1.5px solid var(--border); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.18s, box-shadow 0.18s; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+    .card-icon { background: linear-gradient(135deg, #FFF3E8, #FFE8CC); padding: 28px 0; text-align: center; font-size: 3.2rem; position: relative; }
+    .card-type-tag { position: absolute; top: 12px; left: 14px; background: var(--saffron); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .driver-tag { position: absolute; top: 12px; right: 14px; background: var(--green); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+    .card-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .card-name { font-family: 'Baloo 2', cursive; font-size: 1.15rem; font-weight: 700; }
+    .card-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+    .card-owner { font-size: 0.82rem; color: var(--muted); }
+    .card-owner strong { color: var(--text); }
+    .card-rate { margin-top: 10px; display: flex; align-items: baseline; gap: 4px; }
+    .rate-num { font-family: 'Baloo 2', cursive; font-size: 1.6rem; font-weight: 800; color: var(--saffron); }
+    .rate-unit { font-size: 0.8rem; color: var(--muted); }
+    .card-footer { padding: 0 20px 18px; }
+    .btn-book { width: 100%; background: var(--green); color: #fff; border: none; padding: 13px; border-radius: 10px; font-size: 0.95rem; font-family: 'Noto Sans', sans-serif; font-weight: 700; cursor: pointer; transition: background 0.18s, transform 0.1s; }
+    .btn-book:hover { background: var(--green-dk); transform: scale(1.02); }
+
+    /* LISTER FORM */
+    .lister-wrap { max-width: 680px; margin: 36px auto; padding: 0 20px; }
+    .lister-card { background: #fff; border-radius: var(--radius); border: 1.5px solid var(--border); box-shadow: var(--shadow); padding: 32px 30px; }
+    .lister-card h2 { font-family: 'Baloo 2', cursive; font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
+    .lister-card .sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 26px; }
+    .section-divider { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--saffron); border-bottom: 1.5px solid #FFE8CC; padding-bottom: 6px; margin: 22px 0 16px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: var(--text); }
+    .form-group input, .form-group select { width: 100%; border: 1.5px solid var(--border); border-radius: 9px; padding: 11px 14px; font-size: 0.93rem; font-family: 'Noto Sans', sans-serif; outline: none; transition: border-color 0.15s; background: #fff; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--saffron); }
+    .aadhar-note { font-size: 0.75rem; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+    .btn-submit { width: 100%; background: var(--saffron); color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-family: 'Noto Sans', sans-serif; font-weight: 700; cursor: pointer; margin-top: 8px; transition: background 0.18s; }
+    .btn-submit:hover { background: var(--saffron-light); }
+    .listed-vehicles { margin-top: 28px; }
+    .listed-item { background: var(--blue-light); border: 1.5px solid #BFDBFE; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .listed-item .li-name { font-weight: 700; font-size: 0.95rem; }
+    .listed-item .li-meta { font-size: 0.82rem; color: var(--muted); }
+    .listed-badge { background: var(--blue); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+
+    /* MODAL */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; justify-content: center; align-items: center; padding: 20px; overflow-y: auto; }
+    .overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 18px; width: 100%; max-width: 460px; padding: 30px 28px; position: relative; animation: popIn 0.22s ease; max-height: 90vh; overflow-y: auto; }
+    @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-close { position: absolute; top: 16px; right: 18px; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); line-height: 1; z-index: 10; }
+    .modal h2 { font-family: 'Baloo 2', cursive; font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+    .modal-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 18px; }
+    .modal label { display: block; font-size: 0.83rem; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+    .modal input, .modal select { width: 100%; border: 1.5px solid var(--border); border-radius: 9px; padding: 10px 13px; font-size: 0.9rem; font-family: 'Noto Sans', sans-serif; margin-bottom: 12px; outline: none; transition: border-color 0.15s; }
+    .modal input:focus, .modal select:focus { border-color: var(--saffron); }
+    .modal-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-section-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--saffron); border-bottom: 1px solid #FFE8CC; padding-bottom: 5px; margin: 14px 0 12px; }
+    .modal-summary { background: #F6F7FB; border-radius: 10px; padding: 13px 15px; margin: 14px 0; font-size: 0.86rem; }
+    .modal-summary .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .modal-summary .row:last-child { margin-bottom: 0; font-weight: 700; font-size: 0.93rem; }
+    .btn-confirm { width: 100%; background: var(--saffron); color: #fff; border: none; padding: 13px; border-radius: 10px; font-size: 0.97rem; font-family: 'Noto Sans', sans-serif; font-weight: 700; cursor: pointer; transition: background 0.18s; }
+    .btn-confirm:hover { background: var(--saffron-light); }
+    .secure-note { font-size: 0.73rem; color: var(--muted); text-align: center; margin-top: 8px; }
+
+    /* SUCCESS */
+    .success-box { text-align: center; padding: 8px 0; }
+    .success-icon { font-size: 3.2rem; margin-bottom: 8px; }
+    .success-box h2 { font-family: 'Baloo 2', cursive; font-size: 1.4rem; margin-bottom: 6px; }
+    .success-box p { color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+    .driver-info { background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 10px; padding: 13px; margin: 16px 0; font-size: 0.86rem; color: var(--green); font-weight: 600; text-align: left; }
+
+    footer { text-align: center; padding: 28px 20px; color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--border); margin-top: 40px; }
+    footer strong { color: var(--saffron); }
+    .empty { text-align: center; padding: 60px 20px; color: var(--muted); grid-column: 1/-1; }
+    .empty .emoji { font-size: 3rem; margin-bottom: 12px; }
+
+    @media (max-width: 560px) {
+      .form-row, .modal-2col { grid-template-columns: 1fr; }
+      .lister-card { padding: 22px 18px; }
+      .modal { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Ladla <span>Rent</span> <span class="badge">24×7</span></div>
+  <div class="header-btns">
+    <button class="hdr-btn active-tab" onclick="switchTab('rent')">🚗 Rent Karein</button>
+    <button class="hdr-btn" onclick="switchTab('list')">➕ List Karein</button>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Apna <em>Safar</em>, Apni <em>Marzi</em></h1>
+  <p>Bike, Car, Bus ya Truck — sab kuch milega driver ke saath, 24 ghante, 7 din.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="num">4</div><div class="lbl">Vehicle Types</div></div>
+    <div class="stat"><div class="num">24×7</div><div class="lbl">Available</div></div>
+    <div class="stat"><div class="num">₹50</div><div class="lbl">Se Shuru</div></div>
+    <div class="stat"><div class="num">100%</div><div class="lbl">Driver Saath</div></div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab active" id="tab-rent" onclick="switchTab('rent')"><span class="tab-icon">🚗</span>Vehicle Rent Karein</div>
+  <div class="tab" id="tab-list" onclick="switchTab('list')"><span class="tab-icon">➕</span>Apni Vehicle List Karein</div>
+</div>
+
+<!-- ══ PAGE: RENT ══ -->
+<div class="page active" id="page-rent">
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <button class="filter-btn active" onclick="filterVehicles('all', this)">Sab</button>
+    <button class="filter-btn" onclick="filterVehicles('Bike', this)">🏍️ Bike</button>
+    <button class="filter-btn" onclick="filterVehicles('Car', this)">🚗 Car</button>
+    <button class="filter-btn" onclick="filterVehicles('Bus', this)">🚌 Bus</button>
+    <button class="filter-btn" onclick="filterVehicles('Truck', this)">🚛 Truck</button>
+  </div>
+  <main>
+    <div class="section-title">Available Vehicles <span id="count-label"></span></div>
+    <div class="grid" id="vehicle-grid"></div>
+  </main>
+</div>
+
+<!-- ══ PAGE: LIST ══ -->
+<div class="page" id="page-list">
+  <div class="lister-wrap">
+    <div class="lister-card">
+      <h2>🚗 Apni Vehicle List Karein</h2>
+      <p class="sub">Apni vehicle Ladla Rent pe daalo aur roz kamao. Sabse pehle apni details verify karni hogi.</p>
+
+      <div class="section-divider">👤 Owner / Malik Ki Jankari</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Malik Ka Poora Naam *</label>
+          <input type="text" id="o-name" placeholder="Jaise: Suresh Kumar"/>
+        </div>
+        <div class="form-group">
+          <label>Mobile Number *</label>
+          <input type="tel" id="o-phone" placeholder="10-digit number" maxlength="10"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email ID *</label>
+        <input type="email" id="o-email" placeholder="aapka@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Aadhar Card Number *</label>
+        <input type="text" id="o-aadhar" placeholder="XXXX XXXX XXXX" maxlength="14"/>
+        <div class="aadhar-note">🔒 Aapka Aadhar number sirf verification ke liye use hoga. Yeh secure hai.</div>
+      </div>
+
+      <div class="section-divider">🚗 Vehicle Ki Jankari</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Vehicle Ka Prakar *</label>
+          <select id="o-vtype">
+            <option value="">-- Chunein --</option>
+            <option value="Bike">🏍️ Bike</option>
+            <option value="Car">🚗 Car</option>
+            <option value="Bus">🚌 Bus</option>
+            <option value="Truck">🚛 Truck</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Vehicle Ka Naam / Model *</label>
+          <input type="text" id="o-vname" placeholder="Jaise: Honda Activa 6G"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Vehicle Number (Number Plate) *</label>
+          <input type="text" id="o-vnum" placeholder="Jaise: UP32 AB 1234" maxlength="13" style="text-transform:uppercase;letter-spacing:1.5px;font-weight:700;"/>
+          <div class="aadhar-note">🚗 RC Book ke anusaar sahi number daalen</div>
+        </div>
+        <div class="form-group">
+          <label>RC / Registration Year *</label>
+          <input type="number" id="o-rcyear" placeholder="Jaise: 2020" min="1990" max="2025"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Rate (₹ per ghanta) *</label>
+          <input type="number" id="o-rate" placeholder="Jaise: 50" min="10"/>
+        </div>
+        <div class="form-group">
+          <label>Driver Available?</label>
+          <select id="o-driver">
+            <option value="haan">✅ Haan, driver dunga</option>
+            <option value="nahi">❌ Nahi, sirf vehicle</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Vehicle Ki Khasiyat (Description)</label>
+        <input type="text" id="o-desc" placeholder="Jaise: AC hai, family ke liye perfect"/>
+      </div>
+
+      <button class="btn-submit" onclick="submitListing()">✅ Vehicle List Karein</button>
+
+      <div id="listed-section" style="display:none;">
+        <div class="listed-vehicles">
+          <div class="section-divider">📋 Aapki Listed Vehicles</div>
+          <div id="listed-items"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>&copy; 2025 <strong>Ladla Rent 24×7</strong> — Developed with ❤️ for you</footer>
+
+<!-- BOOKING MODAL -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+  // ── DATA ──
+  const vehicles = [
+    { id: 1, type: 'Bike',  emoji: '🏍️', name: 'Ladla Bike Ride',   ratePerHour: 50,  desc: 'Chhoti doori ke liye perfect. Fuel efficient aur fast.',    driver: 'Ramesh Bhai' },
+    { id: 2, type: 'Car',   emoji: '🚗', name: 'Ladla Family Car',  ratePerHour: 100, desc: 'Family trips ke liye comfortable AC car with driver.',       driver: 'Suresh Kumar' },
+    { id: 3, type: 'Bus',   emoji: '🚌', name: 'Ladla Group Bus',   ratePerHour: 150, desc: 'Group travel ke liye best — 20 se 40 log baith sakte hain.', driver: 'Dinesh Yadav' },
+    { id: 4, type: 'Truck', emoji: '🚛', name: 'Ladla Cargo Truck', ratePerHour: 200, desc: 'Shifting, events ya heavy cargo ke liye reliable truck.',    driver: 'Vijay Patil'  },
+  ];
+
+  let currentVehicle = null;
+  const listedVehicles = [];
+
+  // ── TABS ──
+  function switchTab(tab) {
+    document.getElementById('page-rent').classList.toggle('active', tab === 'rent');
+    document.getElementById('page-list').classList.toggle('active', tab === 'list');
+    document.getElementById('tab-rent').classList.toggle('active', tab === 'rent');
+    document.getElementById('tab-list').classList.toggle('active', tab === 'list');
+    document.querySelectorAll('.hdr-btn').forEach((b, i) => b.classList.toggle('active-tab', (i === 0 && tab === 'rent') || (i === 1 && tab === 'list')));
+  }
+
+  // ── FORMAT AADHAR ──
+  document.addEventListener('DOMContentLoaded', () => {
+    const aadharInput = document.getElementById('o-aadhar');
+    if (aadharInput) {
+      aadharInput.addEventListener('input', function() {
+        let val = this.value.replace(/\D/g, '').slice(0, 12);
+        this.value = val.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+      });
+    }
+    renderVehicles('all');
+  });
+
+  // ── RENDER VEHICLES ──
+  function renderVehicles(filter) {
+    const grid = document.getElementById('vehicle-grid');
+    const list = filter === 'all' ? vehicles : vehicles.filter(v => v.type === filter);
+    document.getElementById('count-label').textContent = `(${list.length})`;
+    if (list.length === 0) {
+      grid.innerHTML = `<div class="empty"><div class="emoji">🔍</div><p>Is category mein koi vehicle nahi mila.</p></div>`;
+      return;
+    }
+    grid.innerHTML = list.map(v => `
+      <div class="card">
+        <div class="card-icon">
+          <span class="card-type-tag">${v.type}</span>
+          <span>${v.emoji}</span>
+          <span class="driver-tag">👨‍✈️ Driver</span>
+        </div>
+        <div class="card-body">
+          <div class="card-name">${v.name}</div>
+          <div class="card-desc">${v.desc}</div>
+          <div class="card-owner">Owner: <strong>Ladla Rent 24×7</strong></div>
+          <div class="card-rate"><span class="rate-num">₹${v.ratePerHour}</span><span class="rate-unit">/ ghante</span></div>
+        </div>
+        <div class="card-footer">
+          <button class="btn-book" onclick="openBooking(${v.id})">🚀 Abhi Book Karein</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterVehicles(type, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderVehicles(type);
+  }
+
+  // ── BOOKING MODAL ──
+  function openBooking(id) {
+    currentVehicle = vehicles.find(v => v.id === id);
+    document.getElementById('modal-content').innerHTML = bookingForm();
+    document.getElementById('overlay').classList.add('open');
+
+    // Aadhar formatting in modal
+    const ma = document.getElementById('r-aadhar');
+    if (ma) {
+      ma.addEventListener('input', function() {
+        let val = this.value.replace(/\D/g, '').slice(0, 12);
+        this.value = val.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+      });
+    }
+    document.getElementById('r-hours').addEventListener('input', updateSummary);
+  }
+
+  function bookingForm() {
+    return `
+      <h2>🚀 Vehicle Book Karein</h2>
+      <p class="modal-sub">${currentVehicle.emoji} ${currentVehicle.name} — ₹${currentVehicle.ratePerHour}/ghante</p>
+
+      <div class="modal-section-label">👤 Aapki Jankari (Lene Wala)</div>
+
+      <label>Poora Naam *</label>
+      <input type="text" id="r-name" placeholder="Jaise: Ravi Sharma"/>
+
+      <div class="modal-2col">
+        <div>
+          <label>Mobile Number *</label>
+          <input type="tel" id="r-phone" placeholder="10-digit number" maxlength="10"/>
+        </div>
+        <div>
+          <label>Email ID *</label>
+          <input type="email" id="r-email" placeholder="aapka@email.com"/>
+        </div>
+      </div>
+
+      <label>Aadhar Card Number *</label>
+      <input type="text" id="r-aadhar" placeholder="XXXX XXXX XXXX" maxlength="14"/>
+      <div class="aadhar-note" style="font-size:0.73rem;color:#6B7280;margin-bottom:12px;">🔒 Sirf verification ke liye, 100% secure</div>
+
+      <div class="modal-section-label">🕒 Booking Details</div>
+
+      <label>Kitne Ghante chahiye? *</label>
+      <input type="number" id="r-hours" min="1" max="24" value="1" placeholder="Ghante"/>
+
+      <div class="modal-summary" id="summary">
+        <div class="row"><span>Vehicle</span><span>${currentVehicle.emoji} ${currentVehicle.type}</span></div>
+        <div class="row"><span>Driver</span><span>👨‍✈️ ${currentVehicle.driver}</span></div>
+        <div class="row"><span>Rate</span><span>₹${currentVehicle.ratePerHour}/hr</span></div>
+        <div class="row"><span><b>Kul Kiraya (1 hr)</b></span><span id="total-price"><b>₹${currentVehicle.ratePerHour}</b></span></div>
+      </div>
+
+      <button class="btn-confirm" onclick="confirmBooking()">✅ Booking Confirm Karein</button>
+      <div class="secure-note">🔒 Aapki saari details encrypt karke rakhi jaati hain</div>
+    `;
+  }
+
+  function updateSummary() {
+    const hrs = parseInt(document.getElementById('r-hours').value) || 1;
+    const total = hrs * currentVehicle.ratePerHour;
+    const priceEl = document.getElementById('total-price');
+    const labelEl = document.querySelector('.modal-summary .row:last-child span:first-child');
+    if (priceEl) priceEl.innerHTML = `<b>₹${total}</b>`;
+    if (labelEl) labelEl.innerHTML = `<b>Kul Kiraya (${hrs} hr)</b>`;
+  }
+
+  function maskAadhar(a) {
+    const d = a.replace(/\s/g, '');
+    return 'XXXX XXXX ' + d.slice(-4);
+  }
+
+  function confirmBooking() {
+    const name   = document.getElementById('r-name')?.value.trim();
+    const phone  = document.getElementById('r-phone')?.value.trim();
+    const email  = document.getElementById('r-email')?.value.trim();
+    const aadhar = document.getElementById('r-aadhar')?.value.replace(/\s/g, '');
+    const hrs    = parseInt(document.getElementById('r-hours')?.value) || 1;
+
+    if (!name)                         { alert('Kripya apna naam darj karein!'); return; }
+    if (!/^\d{10}$/.test(phone))       { alert('Kripya sahi 10-digit mobile number darj karein!'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Kripya sahi email ID darj karein!'); return; }
+    if (!/^\d{12}$/.test(aadhar))      { alert('Kripya sahi 12-digit Aadhar number darj karein!'); return; }
+    if (hrs < 1 || hrs > 24)           { alert('Ghante 1 se 24 ke beech hone chahiye!'); return; }
+
+    const total = hrs * currentVehicle.ratePerHour;
+    const bookingId = 'LR' + Date.now().toString().slice(-6);
+
+    document.getElementById('modal-content').innerHTML = `
+      <div class="success-box">
+        <div class="success-icon">🎉</div>
+        <h2>Booking Ho Gayi!</h2>
+        <p>Aapki booking confirm ho gayi hai. Driver jaldi aapke paas pahunchega.</p>
+        <div class="driver-info">
+          👨‍✈️ Driver: ${currentVehicle.driver}<br/>
+          📋 Booking ID: <strong>${bookingId}</strong>
+        </div>
+        <div class="modal-summary">
+          <div class="row"><span>Naam</span><span>${name}</span></div>
+          <div class="row"><span>Mobile</span><span>${phone}</span></div>
+          <div class="row"><span>Email</span><span>${email}</span></div>
+          <div class="row"><span>Aadhar</span><span>${maskAadhar(aadhar)}</span></div>
+          <div class="row"><span>Vehicle</span><span>${currentVehicle.emoji} ${currentVehicle.type}</span></div>
+          <div class="row"><span>Samay</span><span>${hrs} Ghante</span></div>
+          <div class="row"><span><b>Total</b></span><span><b>₹${total}</b></span></div>
+        </div>
+        <button class="btn-confirm" onclick="closeModalDirect()">👍 Theek Hai, Dhanyawad!</button>
+      </div>
+    `;
+  }
+
+  // ── LISTING SUBMIT ──
+  function submitListing() {
+    const name   = document.getElementById('o-name').value.trim();
+    const phone  = document.getElementById('o-phone').value.trim();
+    const email  = document.getElementById('o-email').value.trim();
+    const aadhar = document.getElementById('o-aadhar').value.replace(/\s/g, '');
+    const vtype  = document.getElementById('o-vtype').value;
+    const vname  = document.getElementById('o-vname').value.trim();
+    const vnum   = document.getElementById('o-vnum').value.trim().toUpperCase();
+    const rcyear = document.getElementById('o-rcyear').value.trim();
+    const rate   = document.getElementById('o-rate').value.trim();
+    const driver = document.getElementById('o-driver').value;
+    const desc   = document.getElementById('o-desc').value.trim();
+
+    if (!name)                         { alert('Malik ka naam darj karein!'); return; }
+    if (!/^\d{10}$/.test(phone))       { alert('Sahi 10-digit mobile number darj karein!'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Sahi email ID darj karein!'); return; }
+    if (!/^\d{12}$/.test(aadhar))      { alert('Sahi 12-digit Aadhar number darj karein!'); return; }
+    if (!vtype)                        { alert('Vehicle ka prakar chunein!'); return; }
+    if (!vname)                        { alert('Vehicle ka naam darj karein!'); return; }
+    if (!vnum || vnum.length < 6)      { alert('Sahi vehicle number plate darj karein!\nJaise: UP32 AB 1234'); return; }
+    if (!rcyear || rcyear < 1990 || rcyear > 2025) { alert('Sahi registration year darj karein!'); return; }
+    if (!rate || isNaN(rate) || +rate < 10) { alert('Sahi rate darj karein (minimum ₹10)!'); return; }
+
+    const emojis = { Bike: '🏍️', Car: '🚗', Bus: '🚌', Truck: '🚛' };
+    listedVehicles.push({ name, phone, email, aadhar, vtype, vname, vnum, rcyear, rate, driver, desc });
+
+    // Show in listed section
+    document.getElementById('listed-section').style.display = 'block';
+    const container = document.getElementById('listed-items');
+    const div = document.createElement('div');
+    div.className = 'listed-item';
+    div.innerHTML = `
+      <div>
+        <div class="li-name">${emojis[vtype] || '🚗'} ${vname}</div>
+        <div class="li-meta" style="margin-top:3px;">
+          <span style="background:#1A1A2E;color:#fff;padding:2px 10px;border-radius:5px;font-weight:700;letter-spacing:1.5px;font-size:0.82rem;">🚗 ${vnum}</span>
+          <span style="margin-left:6px;color:#6B7280;">Reg. ${rcyear}</span>
+        </div>
+        <div class="li-meta" style="margin-top:4px;">₹${rate}/ghante • ${driver === 'haan' ? '👨‍✈️ Driver saath' : 'Sirf vehicle'}</div>
+        <div class="li-meta">📧 ${email} • 📞 ${phone}</div>
+      </div>
+      <span class="listed-badge">✅ Listed</span>
+    `;
+    container.appendChild(div);
+
+    // Clear form
+    ['o-name','o-phone','o-email','o-aadhar','o-vname','o-vnum','o-rcyear','o-rate','o-desc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('o-vtype').value = '';
+    document.getElementById('o-driver').value = 'haan';
+
+    alert(`✅ Aapki vehicle "${vname}" (${vnum}) successfully list ho gayi!\n\nHamari team 24 ghante mein aapse contact karegi.\nMobile: ${phone} | Email: ${email}`);
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('overlay')) closeModalDirect();
+  }
+  function closeModalDirect() {
+    document.getElementById('overlay').classList.remove('open');
+  }
+
+  renderVehicles('all');
+</script>
+</body>
+</html>
