@@ -1,0 +1,3021 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bharat Safar</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#0A0A0A"/>
+  <meta name="background-color" content="#0A0A0A"/>
+  <meta name="description" content="Bike, Auto, Car, Bus aur Truck rent karein driver ke saath, 24 ghante 7 din."/>
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png"/>
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Bharat Safar"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Firebase SDK (compat — single HTML file ke liye) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red:        #E11D48;
+    --red-dark:   #BE123C;
+    --red-soft:   #FFF1F2;
+    --black:      #0A0A0A;
+    --black-soft: #141414;
+    --white:      #FFFFFF;
+    --page-bg:    #F7F7F8;
+    --card-bg:    #FFFFFF;
+    --text:       #0F0F0F;
+    --muted:      #6B7280;
+    --border:     #E5E7EB;
+    --green:      #16A34A;
+    --green-dk:   #15803D;
+    --green-soft: #DCFCE7;
+    --shadow-sm:  0 1px 2px rgba(0,0,0,.04);
+    --shadow:     0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg:  0 12px 32px rgba(0,0,0,.10);
+    --radius:     16px;
+    --radius-sm:  12px;
+    --saffron:    var(--red);
+    --saffron-light: #FB7185;
+    --deep:       var(--black);
+  }
+
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--page-bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 84px;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, .logo, .section-title, .card-name, .rate-num, .id-name {
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: rgba(10,10,10,.97);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 14px clamp(16px, 4vw, 32px);
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--red);
+    box-shadow: 0 4px 20px rgba(0,0,0,.18);
+  }
+  .logo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.6px;
+  }
+  .logo span { color: var(--red); }
+  header > div:last-child {
+    font-size: 0.78rem;
+    color: #A3A3A3;
+    font-weight: 500;
+    background: rgba(255,255,255,.06);
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(255,255,255,.97);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 6px calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 200;
+    box-shadow: 0 -4px 24px rgba(0,0,0,.07);
+    border-top: 1px solid var(--border);
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 12px;
+    transition: color .15s, background .15s;
+    min-width: 64px;
+  }
+  .nav-btn .icon { display: block; line-height: 0; }
+  .nav-btn .icon svg { width: 22px; height: 22px; }
+  .nav-btn.active {
+    color: var(--red);
+    background: var(--red-soft);
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── HERO ── */
+  .hero {
+    background:
+      radial-gradient(ellipse 80% 60% at 85% 10%, rgba(225,29,72,.22), transparent 50%),
+      linear-gradient(165deg, #0A0A0A 0%, #141414 50%, #1A1A1A 100%);
+    color: #fff;
+    text-align: center;
+    padding: clamp(48px, 8vw, 72px) 20px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--red) 0%, var(--red) 50%, var(--green) 50%, var(--green) 100%);
+  }
+  .hero h1 {
+    font-size: clamp(1.85rem, 6.5vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+    max-width: 720px;
+    margin-inline: auto;
+  }
+  .hero h1 em { color: var(--red); font-style: normal; }
+  .hero p {
+    font-size: 1rem;
+    color: #A1A1AA;
+    max-width: 480px;
+    margin: 0 auto 28px;
+    line-height: 1.65;
+  }
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  @media (min-width: 640px) {
+    .hero-stats { grid-template-columns: repeat(4, 1fr); max-width: 640px; }
+  }
+  .stat {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 14px;
+    padding: 14px 8px;
+    text-align: center;
+  }
+  .stat .num {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--red);
+    line-height: 1.15;
+  }
+  .stat .lbl {
+    font-size: 0.68rem;
+    color: #A1A1AA;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .filter-btn {
+    background: var(--page-bg);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all .18s;
+  }
+  .filter-btn:hover { border-color: var(--red); color: var(--red); }
+  .filter-btn.active {
+    background: var(--red);
+    border-color: var(--red);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(225,29,72,.22);
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 1100px;
+    margin: 28px auto;
+    padding: 0 16px;
+  }
+  .section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--black);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title span {
+    background: var(--red-soft);
+    color: var(--red-dark);
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 18px;
+  }
+
+  /* ── VEHICLE CARD ── */
+  .card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  .card-icon {
+    background: linear-gradient(160deg, #F4F4F5, #E4E4E7);
+    min-height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .card-emoji {
+    font-size: 3.6rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.12));
+  }
+  .card-type-tag {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: var(--black);
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+  .driver-tag {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: var(--red-soft);
+    color: var(--red-dark);
+    border: 1px solid #FECDD3;
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .card-body {
+    padding: 18px 18px 8px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .card-name {
+    font-size: 1.08rem;
+    font-weight: 600;
+    color: var(--black);
+  }
+  .card-desc {
+    font-size: 0.84rem;
+    color: var(--muted);
+    line-height: 1.55;
+    min-height: 40px;
+  }
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .card-meta span {
+    font-size: 0.72rem;
+    color: #525252;
+    background: #FAFAFA;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 9px;
+  }
+  .card-meta strong { color: var(--text); font-weight: 600; }
+  .card-rate {
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .rate-num {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--green-dk);
+  }
+  .rate-unit { font-size: 0.84rem; color: var(--muted); }
+  .rate-night {
+    margin-left: auto;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--red-dark);
+    background: var(--red-soft);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .card-footer { padding: 10px 18px 18px; }
+  .btn-book {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    padding: 13px 16px;
+    border-radius: 13px;
+    font-size: 0.95rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.15px;
+    box-shadow: 0 6px 16px rgba(225,29,72,.25);
+    transition: transform .15s, box-shadow .15s, background .15s;
+  }
+  .btn-book:hover {
+    background: var(--red-dark);
+    box-shadow: 0 8px 20px rgba(225,29,72,.32);
+    transform: translateY(-1px);
+  }
+  .btn-book:active { transform: scale(.98); }
+  .btn-book span:last-child { font-size: 1.15rem; line-height: 1; }
+
+  /* ── BOOKING ALERT ── */
+  .booking-alert {
+    position: fixed;
+    top: 76px; right: 14px;
+    z-index: 500;
+    width: min(360px, calc(100vw - 28px));
+    background: #fff;
+    border: 2px solid var(--red);
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.18);
+    padding: 16px;
+    display: none;
+    animation: alertIn .25s ease;
+  }
+  .booking-alert.show { display: block; }
+  .booking-alert h3 { font-family: 'Poppins', sans-serif; margin-bottom: 5px; font-size: 1.05rem; }
+  .booking-alert p { font-size: .82rem; color: var(--muted); line-height: 1.45; }
+  .booking-alert .alert-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .booking-alert button { flex: 1; padding: 10px; border: 0; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  .booking-alert .accept { background: var(--green); color: #fff; }
+  .booking-alert .close { background: var(--page-bg); color: var(--text); }
+  @keyframes alertIn { from { transform: translateY(-12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* ── OVERLAY / MODAL ── */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 22px;
+    max-width: 420px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 26px 22px 22px;
+    position: relative;
+    box-shadow: 0 24px 60px rgba(0,0,0,.28);
+    animation: pop .2s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: var(--page-bg);
+    border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; color: var(--black); }
+  .modal-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 18px; }
+  .modal label, label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 14px 0 6px;
+    color: #374151;
+  }
+  .modal input, .modal select, .form-card input, .form-card select, input, select, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    font-size: 0.94rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    background: #fff;
+    color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .modal input:focus, .modal select:focus, .form-card input:focus, .form-card select:focus,
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 4px rgba(22,163,74,.12);
+  }
+  .modal-summary {
+    background: #FAFAFA;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin: 16px 0;
+  }
+  .modal-summary .row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.86rem;
+    padding: 6px 0;
+    color: var(--muted);
+    border-bottom: 1px solid #F0F0F0;
+  }
+  .modal-summary .row:last-child { border-bottom: 0; }
+  .modal-summary .row span:last-child { color: var(--text); font-weight: 600; }
+  .modal-summary .row.split-fee span:last-child { color: var(--red); }
+
+  .btn-confirm {
+    width: 100%;
+    background: var(--green) !important;
+    color: #fff !important;
+    border: none;
+    padding: 14px;
+    border-radius: 13px;
+    font-size: 0.98rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(22,163,74,.25);
+    transition: background .15s, transform .1s;
+  }
+  .btn-confirm:hover { background: var(--green-dk) !important; }
+  .btn-confirm:active { transform: scale(.98); }
+  .btn-outline {
+    width: 100%;
+    background: #fff;
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: border-color .15s, background .15s;
+  }
+  .btn-outline:hover { border-color: #D1D5DB; background: #FAFAFA; }
+
+  /* ── UPI / SUCCESS ── */
+  .upi-box {
+    border: 1.5px dashed var(--red);
+    background: var(--red-soft);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    margin: 16px 0;
+  }
+  .upi-box .qr {
+    width: 110px; height: 110px;
+    margin: 0 auto 10px;
+    border-radius: 10px;
+    border: 2px solid var(--black);
+  }
+  .upi-id { font-weight: 700; color: var(--black); font-size: 0.95rem; margin-bottom: 2px; }
+  .upi-amt {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.75rem;
+    color: var(--green-dk);
+    font-weight: 800;
+  }
+  .success-box { text-align: center; padding: 10px 0; }
+  .success-icon { font-size: 3.5rem; margin-bottom: 10px; filter: drop-shadow(0 4px 12px rgba(22,163,74,.3)); }
+  .success-box h2 { font-size: 1.45rem; margin-bottom: 8px; color: var(--green-dk); }
+  .success-box p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+  .driver-info {
+    background: var(--green-soft);
+    border: 1.5px solid #BBF7D0;
+    border-left: 4px solid var(--green);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 16px 0;
+    font-size: 0.88rem;
+    color: var(--green-dk);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 28px 20px 20px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 36px;
+  }
+  footer strong { color: var(--black); }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    grid-column: 1 / -1;
+  }
+  .empty .emoji { font-size: 3rem; margin-bottom: 12px; }
+
+  /* ── PANEL (Partner / Admin / Help) ── */
+  .panel-hero {
+    background: linear-gradient(165deg, #0A0A0A 0%, #171717 100%);
+    color: #fff;
+    padding: 36px 20px 30px;
+    text-align: center;
+  }
+  .panel-hero h1 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .panel-hero h1 em { color: var(--red); font-style: normal; }
+  .panel-hero p { color: #A1A1AA; font-size: 0.9rem; }
+  .panel-wrap {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 24px 16px 20px;
+  }
+
+  .form-card, .advanced-box {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    padding: 22px 20px;
+    margin-bottom: 18px;
+  }
+  .form-card h3, .advanced-box h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--black);
+  }
+  .hint { font-size: 0.74rem; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+
+  .status-pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: 999px;
+  }
+  .status-pill.pending { background: #FEF3C7; color: #92400E; }
+  .status-pill.verified { background: var(--green-soft); color: #166534; }
+  .status-pill.rejected, .status-pill.blocked { background: #FEE2E2; color: #991B1B; }
+
+  .id-card {
+    background: linear-gradient(135deg, #0A0A0A, #171717);
+    color: #fff;
+    border-radius: 18px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+  }
+  .id-card::before {
+    content: '';
+    position: absolute;
+    width: 180px; height: 180px;
+    background: var(--red);
+    opacity: 0.14;
+    border-radius: 50%;
+    top: -70px; right: -50px;
+  }
+  .id-card .id-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .id-card .id-logo { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 1.05rem; }
+  .id-card .id-logo span { color: var(--red); }
+  .id-card .id-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 2px; }
+  .id-card .id-role { font-size: 0.78rem; color: #A1A1AA; margin-bottom: 14px; }
+  .id-card .id-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: #D4D4D4;
+    padding: 4px 0;
+  }
+  .id-card .id-row b { color: #fff; }
+
+  .trip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    gap: 12px;
+  }
+  .trip-row:last-child { border-bottom: none; }
+  .trip-row .tr-left b { display: block; font-size: 0.9rem; margin-bottom: 2px; }
+  .trip-row .tr-left span { color: var(--muted); font-size: 0.76rem; display: block; }
+  .trip-row .tr-right { text-align: right; font-weight: 700; color: var(--green-dk); white-space: nowrap; }
+
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .mini-stat {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 12px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .mini-stat .num {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--red);
+  }
+  .mini-stat .lbl {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 3px;
+    font-weight: 500;
+  }
+
+  .admin-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .admin-tab {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .admin-tab.active {
+    background: var(--black);
+    border-color: var(--black);
+    color: #fff;
+  }
+
+  .faq-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .faq-q {
+    padding: 15px 16px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .faq-a {
+    padding: 0 16px;
+    max-height: 0;
+    overflow: hidden;
+    transition: all .2s;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .faq-item.open .faq-a { padding: 0 16px 16px; max-height: 220px; }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .contact-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .contact-btn:hover {
+    border-color: var(--red);
+    box-shadow: 0 4px 12px rgba(225,29,72,.1);
+  }
+  .contact-btn .ic { font-size: 1.5rem; }
+
+  .btn-sm {
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-approve { background: var(--green); color: #fff; }
+  .btn-reject { background: var(--red); color: #fff; }
+
+  /* Extra feature styles */
+  .advanced-box { margin: 20px 0; }
+  .advanced-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .advanced-grid button {
+    border: 1px solid #FECDD3;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--red-soft);
+    color: #9F1239;
+    font-size: 0.85rem;
+    transition: transform .12s;
+  }
+  .advanced-grid button:active { transform: scale(.97); }
+  .feature-note {
+    font-size: 0.74rem;
+    color: var(--muted);
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .badge-ok {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--green-soft);
+    color: #166534;
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+  .badge-pending {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #FEF3C7;
+    color: #92400E;
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .feature-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+  .feature-card b {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .feature-card .big {
+    font-family: 'Poppins', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--black);
+  }
+  .online-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .online-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    background: #A3A3A3;
+  }
+  .online-dot.on { background: var(--green); }
+  .status-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .status-actions button {
+    border: 0;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-status { background: #FEE2E2; color: #9F1239; }
+  .btn-danger { background: #FEE2E2; color: #991B1B; }
+  .rating-stars { font-size: 1.8rem; letter-spacing: 3px; cursor: pointer; }
+  .rating-stars span { opacity: .35; }
+  .rating-stars span.active { opacity: 1; }
+  .booking-meta {
+    background: var(--red-soft);
+    border: 1px solid #FECDD3;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 12px 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 480px) {
+    .hero { padding: 40px 16px 36px; }
+    .card-icon { min-height: 120px; }
+    .card-body { padding: 16px 16px 6px; }
+    .card-footer { padding: 8px 16px 16px; }
+    .btn-book { min-height: 50px; }
+    .contact-grid { grid-template-columns: 1fr 1fr; }
+    .feature-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .btn-book, .nav-btn { transition: none; }
+  }
+
+  /* ── PERSONAL ASSISTANT ── */
+  .pa-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+    z-index: 250;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, var(--red), #BE123C);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(225,29,72,.35);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.45rem;
+    transition: transform .18s, box-shadow .18s;
+  }
+  .pa-fab:hover { transform: scale(1.06); box-shadow: 0 10px 28px rgba(225,29,72,.42); }
+  .pa-fab:active { transform: scale(.96); }
+  .pa-fab.open { background: var(--black); box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+
+  .pa-panel {
+    position: fixed;
+    right: 12px;
+    bottom: calc(142px + env(safe-area-inset-bottom, 0px));
+    width: min(380px, calc(100vw - 24px));
+    height: min(520px, calc(100vh - 180px));
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 50px rgba(0,0,0,.18);
+    z-index: 260;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: paIn .2s ease;
+  }
+  .pa-panel.open { display: flex; }
+  @keyframes paIn { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+
+  .pa-head {
+    background: linear-gradient(135deg, #0A0A0A, #171717);
+    color: #fff;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .pa-avatar {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--red);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .pa-head-info { flex: 1; min-width: 0; }
+  .pa-head-info b { display: block; font-family: 'Poppins', sans-serif; font-size: .95rem; }
+  .pa-head-info span { font-size: .72rem; color: #A3A3A3; }
+  .pa-lang {
+    display: flex; gap: 4px;
+    background: rgba(255,255,255,.08);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .pa-lang button {
+    border: 0; background: transparent; color: #A3A3A3;
+    font-size: .68rem; font-weight: 700; padding: 5px 9px;
+    border-radius: 999px; cursor: pointer;
+  }
+  .pa-lang button.active { background: var(--red); color: #fff; }
+  .pa-close {
+    border: 0; background: rgba(255,255,255,.1); color: #fff;
+    width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: .9rem;
+  }
+
+  .pa-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    background: #FAFAFA;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pa-msg {
+    max-width: 88%;
+    padding: 10px 13px;
+    border-radius: 14px;
+    font-size: .86rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+  .pa-msg.bot {
+    background: #fff;
+    border: 1px solid var(--border);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+  .pa-msg.user {
+    background: var(--red);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .pa-msg .pa-time {
+    display: block;
+    font-size: .65rem;
+    opacity: .65;
+    margin-top: 5px;
+  }
+
+  .pa-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 12px 8px;
+    background: #FAFAFA;
+  }
+  .pa-chip {
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    font-size: .72rem;
+    font-weight: 600;
+    padding: 7px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .pa-chip:hover { border-color: var(--red); color: var(--red); }
+
+  .pa-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--border);
+    background: #fff;
+  }
+  .pa-input-row input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 13px;
+    font-size: .9rem;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
+  .pa-input-row input:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(225,29,72,.12);
+  }
+  .pa-send {
+    border: 0;
+    background: var(--red);
+    color: #fff;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+
+  /* ── MAP / ROAD ── */
+  .map-wrap {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin: 18px 0 8px;
+  }
+  .map-wrap h3 {
+    font-size: 1.02rem;
+    font-weight: 600;
+    padding: 14px 16px 0;
+    color: var(--black);
+  }
+  .map-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    align-items: center;
+  }
+  .map-toolbar input {
+    flex: 1;
+    min-width: 140px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: .88rem;
+  }
+  .map-toolbar button {
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 700;
+    font-size: .8rem;
+    cursor: pointer;
+    background: var(--red-soft);
+    color: #9F1239;
+  }
+  .map-toolbar button.primary {
+    background: var(--red);
+    color: #fff;
+  }
+  .map-toolbar button.green {
+    background: var(--green);
+    color: #fff;
+  }
+  #route-map, #booking-map {
+    width: 100%;
+    height: 280px;
+    background: #E5E7EB;
+    z-index: 1;
+  }
+  #booking-map { height: 220px; border-radius: 12px; margin: 10px 0; }
+  .map-info {
+    padding: 10px 16px 14px;
+    font-size: .8rem;
+    color: var(--muted);
+    line-height: 1.5;
+    border-top: 1px solid var(--border);
+  }
+  .map-info b { color: var(--text); }
+  .map-mode-tag {
+    display: inline-block;
+    background: var(--red-soft);
+    color: var(--red-dark);
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    margin-left: 6px;
+  }
+  .leaflet-container { font-family: 'Inter', sans-serif; }
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Bharat <span>Safar</span></div>
+  <div>📍 Har jagah available</div>
+</header>
+
+<!-- ══════════════ HOME VIEW ══════════════ -->
+<div class="view active" id="view-home">
+  <div class="hero">
+    <h1>Apna <em>Safar</em>, Apni <em>Marzi</em></h1>
+    <p>Bike, Auto, Car, Bus ya Truck — driver ke saath, 24×7 available.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="num">5</div><div class="lbl">Vehicle Types</div></div>
+      <div class="stat"><div class="num">24×7</div><div class="lbl">Available</div></div>
+      <div class="stat"><div class="num">₹40</div><div class="lbl">/ Km (Raat ₹45)</div></div>
+      <div class="stat"><div class="num">100%</div><div class="lbl">Driver Saath</div></div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Filter:</span>
+    <button class="filter-btn active" onclick="filterVehicles('all', this)">Sab</button>
+    <button class="filter-btn" onclick="filterVehicles('Bike', this)">Bike</button>
+    <button class="filter-btn" onclick="filterVehicles('Auto', this)">Auto</button>
+    <button class="filter-btn" onclick="filterVehicles('Car', this)">Car</button>
+    <button class="filter-btn" onclick="filterVehicles('Bus', this)">Bus</button>
+    <button class="filter-btn" onclick="filterVehicles('Truck', this)">Truck</button>
+  </div>
+
+  <main>
+
+    <div class="map-wrap" id="home-map-section">
+      <h3>🗺️ Safar Map <span class="map-mode-tag" id="map-mode-label">Pickup set karein</span></h3>
+      <div class="map-toolbar">
+        <input type="text" id="map-search" placeholder="Jagah search (jaise: Patna Junction)" />
+        <button type="button" onclick="mapSearchPlace()">Search</button>
+        <button type="button" class="primary" onclick="mapSetMode('pickup')">📍 Pickup</button>
+        <button type="button" class="green" onclick="mapSetMode('drop')">🏁 Drop</button>
+        <button type="button" onclick="mapDrawRoute()">🛣️ Route</button>
+        <button type="button" onclick="mapUseMyGPS()">📡 Mera GPS</button>
+      </div>
+      <div id="route-map"></div>
+      <div class="map-info" id="map-info">
+        Map par click karke <b>Pickup</b> aur <b>Drop</b> set karein. Phir <b>Route</b> dabayein — road + distance dikhega.
+      </div>
+    </div>
+
+    <div class="section-title">Available Vehicles <span id="count-label"></span></div>
+    <div class="grid" id="vehicle-grid"></div>
+
+    
+    <div id="home-calc"></div>
+
+    <section class="advanced-box">
+      <h3 style="margin-bottom:12px">Suraksha &amp; Suvidha</h3>
+      <div class="advanced-grid">
+        <button onclick="openSOS()">SOS</button>
+        <button onclick="requestGPS()">GPS Location</button>
+        <button onclick="showInvoice()">Last Invoice</button>
+        <button onclick="openRating()">Rating</button>
+        <button onclick="openReferral()" style="grid-column:1/-1;">Dost Ko Refer Karein</button>
+      </div>
+      <div class="feature-note">Kiraya: ₹40/km (raat 10 baje se subah 6 baje tak ₹45/km). Payment ride poori hone ke baad.</div>
+    </section>
+  </main>
+
+  <footer>
+    &copy; 2026 <strong>Bharat Safar</strong> · All rights reserved
+  </footer>
+</div>
+
+<!-- ══════════════ PARTNER VIEW ══════════════ -->
+<div class="view" id="view-partner">
+  <div class="panel-hero">
+    <h1>Partner <em>Dashboard</em></h1>
+    <p>Driver banein Bharat Safar ke saath aur kamayen har trip par 85%</p>
+  </div>
+  <div class="panel-wrap" id="partner-content"></div>
+</div>
+
+<!-- ══════════════ ADMIN VIEW ══════════════ -->
+<div class="view" id="view-admin">
+  <div class="panel-hero">
+    <h1>Admin <em>Panel</em></h1>
+    <p>Bookings, partners aur payouts manage karein</p>
+  </div>
+  <div class="panel-wrap" id="admin-content"></div>
+</div>
+
+<!-- ══════════════ HELP VIEW ══════════════ -->
+<div class="view" id="view-help">
+  <div class="panel-hero">
+    <h1>Help & <em>Support</em></h1>
+    <p>Aapki madad ke liye hum hamesha available hain</p>
+  </div>
+  <div class="panel-wrap" id="help-content"></div>
+</div>
+
+<!-- ══════════════ PRIVACY POLICY VIEW ══════════════ -->
+<div class="view" id="view-privacy">
+  <div class="panel-hero">
+    <h1>Privacy <em>Policy</em></h1>
+    <p>Last Updated: 21 August 2026</p>
+  </div>
+  <div class="panel-wrap">
+    <div class="form-card">
+      <p style="margin-bottom:10px;">Bharat Safar ("hum", "app") aapki privacy ka samman karta hai. Ye policy batati hai ki hum kaunsa data collect karte hain, kaise use karte hain, aur kaise protect karte hain.</p>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">1. Hum Kaunsa Data Collect Karte Hain</h3>
+      <ul style="padding-left:18px;font-size:0.85rem;color:var(--text);margin-bottom:10px;">
+        <li style="margin-bottom:6px;"><b>Booking ke liye:</b> Naam, mobile number, pickup/drop location, booking details.</li>
+        <li style="margin-bottom:6px;"><b>Partner registration ke liye:</b> Naam, mobile number, Aadhaar number, PAN number, vehicle details — driver/rental partner verify karne ke liye.</li>
+        <li style="margin-bottom:6px;"><b>Payment ke liye:</b> UPI payment reference. Hum aapka UPI PIN, bank password ya card details kabhi collect nahi karte — payment seedha aapke UPI app se hoti hai.</li>
+      </ul>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">2. Data Kaise Use Hota Hai</h3>
+      <ul style="padding-left:18px;font-size:0.85rem;color:var(--text);margin-bottom:10px;">
+        <li style="margin-bottom:6px;">Booking confirm karne aur driver partner assign karne ke liye.</li>
+        <li style="margin-bottom:6px;">Partner ki identity verify karne ke liye (Aadhaar/PAN sirf verification ke liye, admin approval ke baad).</li>
+        <li style="margin-bottom:6px;">Customer support aur booking-related communication ke liye.</li>
+        <li style="margin-bottom:6px;">Hum aapka data kisi third-party ko bechte nahi hain.</li>
+      </ul>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">3. Data Kahan Store Hota Hai</h3>
+      <p style="font-size:0.85rem;margin-bottom:10px;">App ka data aapke device par (local storage) aur hamare secure systems mein store hota hai. Aadhaar/PAN sirf verification ke liye rakha jata hai aur app ke andar masked (•••• form) mein dikhaya jata hai.</p>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">4. Data Delete Karwane Ka Adhikar</h3>
+      <p style="font-size:0.85rem;margin-bottom:10px;">Aap apna account/data delete karwa sakte hain — bas hume neeche diye contact par request bhejein. Hum 7 working days ke andar aapka data delete kar denge, jab tak legal/accounting record rakhna zaroori na ho.</p>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">5. Permissions</h3>
+      <p style="font-size:0.85rem;margin-bottom:10px;">App koi extra device permission (camera, location tracking, contacts) forcefully access nahi karta jab tak aap khud koi feature use na karein jisme uski zaroorat ho.</p>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">6. Children's Privacy</h3>
+      <p style="font-size:0.85rem;margin-bottom:10px;">Ye app 18 saal se kam umar ke bacchon ke liye nahi hai. Hum jaan bujh kar bacchon ka data collect nahi karte.</p>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">7. Policy Mein Badlav</h3>
+      <p style="font-size:0.85rem;margin-bottom:10px;">Hum is policy ko samay-samay par update kar sakte hain. Koi bhi badlav is page par update kar diya jayega.</p>
+
+      <h3 style="color:var(--saffron);margin-top:16px;margin-bottom:6px;">8. Hume Sampark Karein</h3>
+      <div class="contact-grid" style="margin-top:6px;">
+        <a class="contact-btn" href="https://wa.me/918089156724" target="_blank"><span class="ic">💬</span>WhatsApp 1</a>
+        <a class="contact-btn" href="https://wa.me/917970867110" target="_blank"><span class="ic">💬</span>WhatsApp 2</a>
+        <a class="contact-btn" href="tel:8089156724"><span class="ic">📞</span>Call 1</a>
+        <a class="contact-btn" href="tel:7970867110"><span class="ic">📞</span>Call 2</a>
+        <a class="contact-btn" href="mailto:rahulk39377@gmail.com"><span class="ic">📧</span>Email</a>
+      </div>
+    </div>
+    <button class="btn-outline" style="margin-top:14px;width:100%;" onclick="switchView('help', document.querySelector('.nav-btn[onclick*=help]'))">⬅️ Wapas Help Par Jayein</button>
+  </div>
+</div>
+
+
+<!-- PERSONAL ASSISTANT -->
+<button class="pa-fab" id="pa-fab" onclick="toggleAssistant()" aria-label="Personal Assistant">💬</button>
+<div class="pa-panel" id="pa-panel">
+  <div class="pa-head">
+    <div class="pa-avatar">🤖</div>
+    <div class="pa-head-info">
+      <b>Safar Assistant</b>
+      <span id="pa-status">Hindi / English · Online</span>
+    </div>
+    <div class="pa-lang">
+      <button type="button" id="pa-lang-hi" class="active" onclick="setPaLang('hi')">HI</button>
+      <button type="button" id="pa-lang-en" onclick="setPaLang('en')">EN</button>
+    </div>
+    <button class="pa-close" onclick="toggleAssistant(false)" aria-label="Close">✕</button>
+  </div>
+  <div class="pa-messages" id="pa-messages"></div>
+  <div class="pa-quick" id="pa-quick"></div>
+  <div class="pa-input-row">
+    <input type="text" id="pa-input" placeholder="Type in Hindi or English..." autocomplete="off" onkeydown="if(event.key==='Enter')sendPaMessage()"/>
+    <button class="pa-send" onclick="sendPaMessage()" aria-label="Send">➤</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="switchView('home', this)"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span>Home</button>
+  <button class="nav-btn" onclick="switchView('partner', this)"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="16" r="1"/><circle cx="16.5" cy="16" r="1"/></svg></span>Partner</button>
+  <button class="nav-btn" onclick="switchView('admin', this)"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.8 8 9 4.8-1.2 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></span>Admin</button>
+  <button class="nav-btn" onclick="switchView('help', this)"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg></span>Help</button>
+</div>
+
+<!-- BOOKING MODAL -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script>
+  // ══════════════ CONFIG ══════════════
+  const ADMIN_PIN = '242410';
+  const NIGHT_RATE_PER_KM = 45; // raat 10 baje se subah 6 baje tak
+  function isNightTime(t){ if(!t) return false; const h=parseInt(String(t).split(':')[0]); return h>=22||h<6; }
+  function rateFor(t){ return isNightTime(t)?NIGHT_RATE_PER_KM:currentVehicle.ratePerKm; }
+  const PLATFORM_FEE_PCT = 0.15; // BoltHome jaisa 15% commission model
+  const UPI_ID = 'rahulk39377-1@oksbi';
+
+  // ── FIREBASE CONFIG (project: kaam-a4af3) ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyC55mJ1_9tcnWjY3-lepf5Vw6ZmqG5Q0CY",
+    authDomain: "kaam-a4af3.firebaseapp.com",
+    projectId: "kaam-a4af3",
+    storageBucket: "kaam-a4af3.firebasestorage.app",
+    messagingSenderId: "977920673542",
+    appId: "1:977920673542:web:f65a48feed7d89c536c087",
+    measurementId: "G-JVFSZQLTDJ"
+  };
+
+  let db = null;
+  let firebaseReady = false;
+  const USE_FIREBASE = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'YOUR_API_KEY';
+
+  try {
+    if (USE_FIREBASE && typeof firebase !== 'undefined') {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      firebaseReady = true;
+      console.log('✅ Firebase connected');
+    } else {
+      console.log('ℹ️ Firebase config missing — localStorage mode chal raha hai');
+    }
+  } catch (e) {
+    console.warn('Firebase init error, localStorage fallback:', e);
+    firebaseReady = false;
+  }
+
+  const LS = {
+    bookings: 'ladlaRent_bookings',
+    partners: 'ladlaRent_partners'
+  };
+
+  // ══════════════ DATA ══════════════
+  const vehicles = [
+    { id: 1, type: 'Bike',  emoji: '🏍️', name: 'Safar Bike Ride',    ratePerKm: 40, desc: 'Chhoti doori ke liye perfect. Fuel efficient aur fast.',    driver: 'Ramesh Bhai',  driverPhone: '9800000001', vehicleNumber: 'BR06 AB 1234' },
+    { id: 5, type: 'Auto',  emoji: '🛺', name: 'Safar Auto Ride',    ratePerKm: 40, desc: 'Shehar ke andar aana-jaana — sasta aur asaan auto ride.',    driver: 'Manoj Sah',    driverPhone: '9800000005', vehicleNumber: 'BR06 IJ 7890' },
+    { id: 2, type: 'Car',   emoji: '🚗', name: 'Safar Family Car',   ratePerKm: 40, desc: 'Family trips ke liye comfortable AC car with driver.',      driver: 'Suresh Kumar', driverPhone: '9800000002', vehicleNumber: 'BR06 CD 5678' },
+    { id: 3, type: 'Bus',   emoji: '🚌', name: 'Safar Group Bus',    ratePerKm: 40, desc: 'Group travel ke liye best — 20 se 40 log baith sakte hain.', driver: 'Dinesh Yadav', driverPhone: '9800000003', vehicleNumber: 'BR06 EF 9012' },
+    { id: 4, type: 'Truck', emoji: '🚛', name: 'Safar Cargo Truck',  ratePerKm: 40, desc: 'Shifting, events ya heavy cargo ke liye reliable truck.',   driver: 'Vijay Patil',  driverPhone: '9800000004', vehicleNumber: 'BR06 GH 3456' },
+  ];
+
+  // ── Sync helpers (UI synchronous + Firebase background) ──
+  // ── OTP security: Firestore mein OTP ka SHA-256 hash save hota hai, plain OTP nahi ──
+  function sha256(str){
+    const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+    const bytes=Array.from(unescape(encodeURIComponent(str)),c=>c.charCodeAt(0));
+    const l=bytes.length*8; bytes.push(0x80);
+    while(bytes.length%64!==56) bytes.push(0);
+    for(let i=7;i>=0;i--) bytes.push(i>=4?0:(l>>>(i*8))&255);
+    let h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    const rr=(x,n)=>(x>>>n)|(x<<(32-n));
+    for(let o=0;o<bytes.length;o+=64){
+      const w=new Array(64);
+      for(let i=0;i<16;i++) w[i]=(bytes[o+i*4]<<24)|(bytes[o+i*4+1]<<16)|(bytes[o+i*4+2]<<8)|bytes[o+i*4+3];
+      for(let i=16;i<64;i++){const a=rr(w[i-15],7)^rr(w[i-15],18)^(w[i-15]>>>3),b=rr(w[i-2],17)^rr(w[i-2],19)^(w[i-2]>>>10);w[i]=(w[i-16]+a+w[i-7]+b)|0;}
+      let [a,b,c,d,e,f,g,hh]=h;
+      for(let i=0;i<64;i++){
+        const t1=(hh+(rr(e,6)^rr(e,11)^rr(e,25))+((e&f)^(~e&g))+K[i]+w[i])|0;
+        const t2=((rr(a,2)^rr(a,13)^rr(a,22))+((a&b)^(a&c)^(b&c)))|0;
+        hh=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+      }
+      h=[(h[0]+a)|0,(h[1]+b)|0,(h[2]+c)|0,(h[3]+d)|0,(h[4]+e)|0,(h[5]+f)|0,(h[6]+g)|0,(h[7]+hh)|0];
+    }
+    return h.map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
+  }
+  function otpHashOf(id,salt,otp){ return sha256(salt+':'+id+':'+otp); }
+  function newSalt(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+  // Customer ka apna OTP sirf us ke device par rehta hai (Firestore par kabhi nahi jaata)
+  const MY_OTP_KEY='bharatSafar_myOtps';
+  function rememberOtp(id,otp){ try{const m=JSON.parse(localStorage.getItem(MY_OTP_KEY)||'{}');m[id]=otp;const k=Object.keys(m);if(k.length>50)delete m[k[0]];localStorage.setItem(MY_OTP_KEY,JSON.stringify(m));}catch(e){} }
+  function getMyOtp(id){ try{return (JSON.parse(localStorage.getItem(MY_OTP_KEY)||'{}'))[id]||'';}catch(e){return '';} }
+  function bookingHasOtp(b){ return !!(b&&(b.otpHash||b.otp)); }
+  function checkOtp(b,entered){ return b.otpHash ? otpHashOf(b.id,b.otpSalt||'',entered)===b.otpHash : entered===String(b.otp); }
+
+  function loadBookings() {
+    const list = JSON.parse(localStorage.getItem(LS.bookings) || '[]');
+    let migrated = false;
+    list.forEach(b => {
+      if (b.otp && !b.otpHash) { // purana plain OTP -> hash me badlo
+        const salt = newSalt();
+        b.otpSalt = salt; b.otpHash = otpHashOf(b.id, salt, String(b.otp));
+        delete b.otp; migrated = true;
+      } else if (b.otp) { delete b.otp; migrated = true; }
+    });
+    if (migrated) { localStorage.setItem(LS.bookings, JSON.stringify(list)); syncBookingsToFirebase(list); }
+    return list;
+  }
+  function saveBookings(list) {
+    localStorage.setItem(LS.bookings, JSON.stringify(list));
+    syncBookingsToFirebase(list);
+  }
+  // ── ID masking: poora Aadhaar/PAN kabhi store ya sync nahi hota ──
+  function maskAadhaar(v) {
+    const raw = String(v || ''), d = raw.replace(/\s/g, '');
+    return /^\d{12}$/.test(d) ? '•••• •••• ' + d.slice(-4) : raw;
+  }
+  function maskPan(v) {
+    v = String(v || '').toUpperCase().trim();
+    return /^[A-Z]{5}\d{4}[A-Z]$/.test(v) ? '••••••' + v.slice(-4) : v;
+  }
+  function loadPartners() {
+    const list = JSON.parse(localStorage.getItem(LS.partners) || '[]');
+    let migrated = false;
+    list.forEach(p => {
+      if (p.blocked === undefined) p.blocked = false;
+      if (p.online === undefined) p.online = false;
+      const a = maskAadhaar(p.aadhaar), n = maskPan(p.pan);
+      if (a !== p.aadhaar) { p.aadhaar = a; migrated = true; }
+      if (n !== p.pan) { p.pan = n; migrated = true; }
+    });
+    if (migrated) { localStorage.setItem(LS.partners, JSON.stringify(list)); syncPartnersToFirebase(list); }
+    return list;
+  }
+  function savePartners(list) {
+    localStorage.setItem(LS.partners, JSON.stringify(list));
+    syncPartnersToFirebase(list);
+  }
+
+  async function syncBookingsToFirebase(list) {
+    if (!firebaseReady || !db) return;
+    try {
+      const batch = db.batch();
+      (list || []).slice(0, 40).forEach(b => {
+        const ref = db.collection('bookings').doc(String(b.id));
+        batch.set(ref, { ...b, otp: firebase.firestore.FieldValue.delete(), updatedAt: new Date().toISOString() }, { merge: true });
+      });
+      await batch.commit();
+    } catch (e) { console.warn('Firebase bookings sync:', e.message); }
+  }
+
+  async function syncPartnersToFirebase(list) {
+    if (!firebaseReady || !db) return;
+    try {
+      const batch = db.batch();
+      (list || []).forEach(p => {
+        const ref = db.collection('partners').doc(String(p.id));
+        batch.set(ref, { ...p, updatedAt: new Date().toISOString() }, { merge: true });
+      });
+      await batch.commit();
+    } catch (e) { console.warn('Firebase partners sync:', e.message); }
+  }
+
+  async function pullFromFirebase() {
+    if (!firebaseReady || !db) return;
+    try {
+      const [bSnap, pSnap] = await Promise.all([
+        db.collection('bookings').orderBy('timestamp', 'desc').limit(100).get().catch(() => db.collection('bookings').limit(100).get()),
+        db.collection('partners').get()
+      ]);
+      if (!bSnap.empty) {
+        const bookings = bSnap.docs.map(d => ({ ...d.data(), id: d.id }));
+        localStorage.setItem(LS.bookings, JSON.stringify(bookings));
+      }
+      if (!pSnap.empty) {
+        const partners = pSnap.docs.map(d => {
+          const p = { ...d.data(), id: d.id };
+          if (p.blocked === undefined) p.blocked = false;
+          if (p.online === undefined) p.online = false;
+          return p;
+        });
+        localStorage.setItem(LS.partners, JSON.stringify(partners));
+      }
+      console.log('✅ Data Firebase se pull ho gaya');
+    } catch (e) {
+      console.warn('Firebase pull failed (rules / index?):', e.message);
+    }
+  }
+
+  // Seed default in-house drivers as verified partners on first run
+  function seedPartners() {
+    let partners = loadPartners();
+    if (partners.length === 0) {
+      partners = vehicles.map((v, i) => ({
+        id: 'LRP' + (100000 + i),
+        name: v.driver,
+        phone: v.driverPhone,
+        vehicleType: v.type,
+        vehicleNumber: v.vehicleNumber,
+        aadhaar: '•••• •••• ' + (1000 + i),
+        pan: '••••••' + (1000 + i).toString().slice(-3) + 'F',
+        verified: true,
+        blocked: false,
+        online: false,
+        joinDate: new Date().toLocaleDateString('en-IN')
+      }));
+      savePartners(partners);
+    }
+  }
+  seedPartners();
+
+  // Firebase se pehle data lao, phir UI refresh
+  if (firebaseReady) {
+    pullFromFirebase().then(() => {
+      if (typeof renderVehicles === 'function') renderVehicles('all');
+    });
+    // Real-time listeners (optional — live updates)
+    try {
+      db.collection('bookings').onSnapshot(() => {
+        pullFromFirebase().then(() => {
+          if (adminLoggedIn && typeof renderAdminView === 'function') renderAdminView();
+          if (loggedInPartnerPhone && typeof renderPartnerView === 'function') renderPartnerView();
+        });
+      }, err => console.warn('bookings listener:', err.message));
+      db.collection('partners').onSnapshot(() => {
+        pullFromFirebase().then(() => {
+          if (adminLoggedIn && typeof renderAdminView === 'function') renderAdminView();
+          if (loggedInPartnerPhone && typeof renderPartnerView === 'function') renderPartnerView();
+        });
+      }, err => console.warn('partners listener:', err.message));
+    } catch (e) { console.warn('Realtime listeners skip:', e.message); }
+  }
+
+  let currentVehicle = null;
+  let currentBookingDraft = null;
+  let loggedInPartnerPhone = null;
+
+  let lastSeenBookingIds = JSON.parse(localStorage.getItem('ladlaRent_seenBookingIds') || '[]');
+  let alertBookingId = null;
+
+  function checkPartnerBookingNotifications() {
+    if (!loggedInPartnerPhone) return;
+    const partner = loadPartners().find(p => p.phone === loggedInPartnerPhone);
+    if (!partner || partner.blocked) return;
+
+    const unseen = loadBookings().filter(b =>
+      b.driverPhone === partner.phone &&
+      b.status !== 'Payment Verification Pending' && b.status !== 'Cancelled' &&
+      !lastSeenBookingIds.includes(b.id)
+    );
+
+    if (unseen.length) {
+      const b = unseen[0];
+      alertBookingId = b.id;
+      const alert = document.getElementById('booking-alert');
+      const msg = document.getElementById('booking-alert-text');
+      if (alert && msg) {
+        msg.innerHTML = `👤 ${b.custName}<br>🚗 ${b.vehicleType} • ${b.distance} km<br>💰 ₹${b.driverPayout} partner payout`;
+        alert.classList.add('show');
+      }
+    }
+  }
+
+  function closeBookingAlert() {
+    const b = loadBookings().find(x => x.id === alertBookingId);
+    if (b) {
+      lastSeenBookingIds.push(b.id);
+      localStorage.setItem('ladlaRent_seenBookingIds', JSON.stringify(lastSeenBookingIds.slice(-100)));
+    }
+    document.getElementById('booking-alert')?.classList.remove('show');
+    alertBookingId = null;
+  }
+
+  function acceptAlertBooking() {
+    const id = alertBookingId;
+    const bookings = loadBookings();
+    const b = bookings.find(x => x.id === id);
+    if (b) {
+      b.partnerStatus = 'Accepted';
+      b.status = 'Accepted by Partner';
+      saveBookings(bookings);
+    }
+    closeBookingAlert();
+    renderPartnerView();
+    alert('✅ Booking accept ho gayi!');
+  }
+
+  setInterval(checkPartnerBookingNotifications, 2000);
+
+
+  // ══════════════ VIEW SWITCH ══════════════
+  function switchView(name, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (name === 'partner') renderPartnerView();
+    if (name === 'admin') renderAdminView();
+    if (name === 'help') renderHelpView();
+  }
+
+  // ══════════════ HOME: RENDER VEHICLES ══════════════
+  function renderVehicles(filter) {
+    const grid = document.getElementById('vehicle-grid');
+    const list = filter === 'all' ? vehicles : vehicles.filter(v => v.type === filter);
+    document.getElementById('count-label').textContent = `(${list.length})`;
+
+    if (list.length === 0) {
+      grid.innerHTML = `<div class="empty"><div class="emoji">🔍</div><p>Is category mein koi vehicle nahi mila.</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(v => `
+      <div class="card">
+        <div class="card-icon">
+          <span class="card-type-tag">${v.type}</span>
+          <span class="driver-tag">Driver ke saath</span>
+          <span class="card-emoji">${v.emoji}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-name">${v.name}</div>
+          <div class="card-desc">${v.desc}</div>
+          <div class="card-meta"><span>Gari No. <strong>${v.vehicleNumber}</strong></span><span>Owner <strong>Bharat Safar</strong></span></div>
+          <div class="card-rate">
+            <span class="rate-num">₹${v.ratePerKm}</span>
+            <span class="rate-unit">/ km</span>
+            <span class="rate-night">Raat ₹45/km</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button class="btn-book" onclick="openBooking(${v.id})"><span>Book Now</span><span aria-hidden="true">→</span></button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterVehicles(type, btn) {
+    document.querySelectorAll('.filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderVehicles(type);
+  }
+
+  // ══════════════ BOOKING MODAL FLOW ══════════════
+  function openBooking(id) {
+    currentVehicle = vehicles.find(v => v.id === id);
+    document.getElementById('modal-content').innerHTML = bookingForm();
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('distance').addEventListener('input', updateSummary);
+  }
+
+  function bookingForm() {
+    const fare = currentVehicle.ratePerKm;
+    const fee = Math.round(fare * PLATFORM_FEE_PCT);
+    return `
+      <h2>Booking Karein</h2>
+      <p class="modal-sub">${currentVehicle.emoji} ${currentVehicle.name} — ₹${currentVehicle.ratePerKm}/kilometer</p>
+
+      <label>Aapka Naam</label>
+      <input type="text" id="cust-name" placeholder="Jaise: Ravi Sharma"/>
+
+      <label>Mobile Number</label>
+      <input type="tel" id="cust-phone" placeholder="10-digit mobile number"/>
+
+      <label>Pickup Location</label>
+      <input type="text" id="pickup" placeholder="Pickup location"/>
+      <label>Drop Location</label>
+      <input type="text" id="drop" placeholder="Drop location"/>
+      <label>Date & Time</label>
+      <input type="datetime-local" id="ride-time"/>
+      <label>Kitne Kilometer jana hai?</label>
+      <input type="number" id="distance" min="1" max="1000" value="1" placeholder="Kilometer" oninput="updateSummary()"/>
+      <label>Waiting Time (minutes)</label>
+      <input type="number" id="waiting" min="0" max="600" value="0" placeholder="0"/>
+
+      <div class="modal-summary" id="summary">
+        <div class="row"><span>Vehicle</span><span>${currentVehicle.emoji} ${currentVehicle.type}</span></div>
+        <div class="row"><span>Driver</span><span>👨‍✈️ ${currentVehicle.driver}</span></div>
+        <div class="row"><span>Gari Number</span><span>${currentVehicle.vehicleNumber}</span></div>
+        <div class="row"><span>Rate</span><span id="rate-amt">₹${currentVehicle.ratePerKm}/km</span></div>
+        <div class="row"><span><b>Kul Kiraya (1 km)</b></span><span id="total-price"><b>₹${fare}</b></span></div>
+      </div>
+
+      <button class="btn-confirm" onclick="proceedToPayment()">➡️ Payment Par Jayein</button>
+    `;
+  }
+
+  function updateSummary() {
+    const km = parseInt(document.getElementById('distance')?.value) || 1;
+    const t = document.getElementById('trip-time')?.value;
+    const rate = rateFor(t);
+    const total = km * rate;
+    const fee = Math.round(total * PLATFORM_FEE_PCT);
+    const rateEl = document.getElementById('rate-amt');
+    if(rateEl) rateEl.textContent = `₹${rate}/km` + (isNightTime(t) ? ' 🌙 Night' : '');
+    const totalEl=document.getElementById('total-price'), feeEl=document.getElementById('fee-amt');
+    if(totalEl) totalEl.innerHTML = `<b>₹${total}</b>`;
+    if(feeEl) feeEl.textContent = `₹${fee}`;
+    const last=document.querySelector('.modal-summary .row:last-child span:first-child');
+    if(last) last.innerHTML = `<b>Kul Kiraya (${km} km)</b>`;
+  }
+
+  function proceedToPayment() {
+    const name=document.getElementById('cust-name')?.value.trim();
+    const phone=document.getElementById('cust-phone')?.value.trim();
+    const pickup=document.getElementById('pickup')?.value.trim();
+    const drop=document.getElementById('drop')?.value.trim();
+    const rideTime=document.getElementById('ride-time')?.value;
+    const km=parseInt(document.getElementById('distance')?.value)||1;
+    const waiting=parseInt(document.getElementById('waiting')?.value)||0;
+    if(!name) return alert('Kripya apna naam darj karein!');
+    if(!/^\d{10}$/.test(phone)) return alert('Kripya sahi 10-digit mobile number darj karein!');
+    if(!pickup || !drop) return alert('Pickup aur Drop location darj karein!');
+    if(!rideTime) return alert('Date & Time select karein!');
+    if(km<1 || km>1000) return alert('Kilometer 1 se 1000 ke beech hone chahiye!');
+    let base=km*currentVehicle.ratePerKm;
+    const hour=new Date(rideTime).getHours();
+    const night=(hour>=22||hour<6)?Math.round(base*.10):0;
+    const peak=((hour>=8&&hour<=10)||(hour>=17&&hour<=20))?Math.round(base*.10):0;
+    const waitingCharge=waiting*2;
+    const total=base+night+peak+waitingCharge;
+    const fee=Math.round(total*PLATFORM_FEE_PCT), driverPayout=total-fee;
+    currentBookingDraft={name,phone,pickup,drop,rideTime,km,waiting,night,peak,waitingCharge,total,fee,driverPayout};
+    const upiUri=`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('Bharat Safar')}&am=${total}&cu=INR&tn=${encodeURIComponent(currentVehicle.type+' booking')}`;
+    const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+    document.getElementById('modal-content').innerHTML=`<h2>💳 UPI Payment</h2><p class="modal-sub">Payment complete karke booking confirm karein</p><div class="upi-box"><img src="${qrUrl}" alt="UPI QR Code" width="180" height="180" style="border-radius:12px;border:1.5px solid var(--border);background:#fff"/><div class="upi-id" style="margin-top:10px">${UPI_ID}</div><div class="upi-amt">₹${total}</div><button class="btn-confirm" style="margin-top:10px" onclick="window.location.href='${upiUri}'">📱 UPI App Mein Kholein</button></div><div class="modal-summary"><div class="row"><span>Base Fare</span><span>₹${base}</span></div><div class="row"><span>Night/Peak Charges</span><span>₹${night+peak}</span></div><div class="row"><span>Waiting Charge</span><span>₹${waitingCharge}</span></div><div class="row split-fee"><span>Platform Fee (15%)</span><span>₹${fee}</span></div><div class="row"><span><b>Total</b></span><span><b>₹${total}</b></span></div></div><button class="btn-confirm" onclick="confirmBooking()">✅ Maine Payment Kar Diya — Confirm</button><button class="btn-outline" onclick="document.getElementById('modal-content').innerHTML=bookingForm();document.getElementById('distance').value=${km};document.getElementById('waiting').value=${waiting};updateSummary()">⬅️ Wapas</button>`;
+  }
+
+  function copyUpiId() {
+    navigator.clipboard?.writeText(UPI_ID).then(() => {
+      const btn = document.getElementById('upi-copy-btn');
+      if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy UPI ID'; }, 1500); }
+    }).catch(() => alert('UPI ID: ' + UPI_ID));
+  }
+
+  function confirmBooking() {
+    const { name, phone, pickup, drop, rideTime, km, waiting, total, fee, driverPayout } = currentBookingDraft;
+    const bookingId = 'LR' + Date.now().toString().slice(-6);
+
+    const bookings = loadBookings();
+    bookings.unshift({
+      id: bookingId,
+      custName: name,
+      custPhone: phone,
+      vehicleType: currentVehicle.type,
+      driverName: currentVehicle.driver,
+      driverPhone: currentVehicle.driverPhone,
+      distance: km,
+      pickup, drop, rideTime, waiting,
+      total, fee, driverPayout,
+      payment: 'UPI',
+      status: 'Confirmed',
+      timestamp: new Date().toLocaleString('en-IN')
+    });
+    saveBookings(bookings);
+
+    document.getElementById('modal-content').innerHTML = `
+      <div class="success-box">
+        <div class="success-icon">🎉</div>
+        <h2>Booking Ho Gayi!</h2>
+        <p>Payment mil gaya hai. Driver jaldi aapke paas pahunchega.</p>
+        <div class="driver-info">
+          👨‍✈️ Driver: ${currentVehicle.driver}<br/>
+          📞 Booking ID: <strong>${bookingId}</strong>
+        </div>
+        <div class="modal-summary">
+          <div class="row"><span>Naam</span><span>${name}</span></div>
+          <div class="row"><span>Mobile</span><span>${phone}</span></div>
+          <div class="row"><span>Vehicle</span><span>${currentVehicle.emoji} ${currentVehicle.type}</span></div>
+          <div class="row"><span>Distance</span><span>${km} Kilometer</span></div>
+          <div class="row"><span><b>Total Paid (UPI)</b></span><span><b>₹${total}</b></span></div>
+        </div>
+        <button class="btn-confirm" onclick="closeModalDirect()">👍 Theek Hai, Dhanyawad!</button>
+      </div>
+    `;
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('overlay')) closeModalDirect();
+  }
+  function closeModalDirect() {
+    document.getElementById('overlay').classList.remove('open');
+  }
+
+  // ══════════════ PARTNER VIEW ══════════════
+  function renderPartnerView() {
+    const el = document.getElementById('partner-content');
+    if (!loggedInPartnerPhone) {
+      el.innerHTML = `
+        <div class="form-card">
+          <h3>🔑 Partner Login</h3>
+          <label>Registered Mobile Number</label>
+          <input type="tel" id="partner-login-phone" placeholder="10-digit mobile number"/>
+          <button class="btn-confirm" style="margin-top:14px;" onclick="partnerLogin()">Login</button>
+        </div>
+        <div class="form-card">
+          <h3>📝 Naye Partner Register Karein</h3>
+          <label>Pura Naam</label>
+          <input type="text" id="reg-name" placeholder="Jaise: Anil Kumar"/>
+          <label>Mobile Number</label>
+          <input type="tel" id="reg-phone" placeholder="10-digit mobile number"/>
+          <label>Vehicle Type</label>
+          <select id="reg-vtype">
+            <option value="Bike">🏍️ Bike</option>
+            <option value="Car">🚗 Car</option>
+            <option value="Bus">🚌 Bus</option>
+            <option value="Truck">🚛 Truck</option>
+          </select>
+          <label>Vehicle Number</label>
+          <input type="text" id="reg-vnum" maxlength="13" placeholder="Jaise: BR06 AB 1234" style="text-transform:uppercase;"/>
+          <label>Aadhaar Number</label>
+          <input type="text" id="reg-aadhaar" maxlength="12" placeholder="12-digit Aadhaar number"/>
+          <label>PAN Number</label>
+          <input type="text" id="reg-pan" maxlength="10" placeholder="Jaise: ABCDE1234F" style="text-transform:uppercase;"/>
+          <div class="hint" style="margin-top:6px;">Registration ke baad Admin approve karega, phir hi ID Card milega.</div>
+          <button class="btn-confirm" style="margin-top:14px;" onclick="registerPartner()">✅ Register Karein</button>
+        </div>
+      `;
+      return;
+    }
+
+    const partners = loadPartners();
+    const partner = partners.find(p => p.phone === loggedInPartnerPhone);
+    if (!partner) { loggedInPartnerPhone = null; renderPartnerView(); return; }
+
+    const bookings = loadBookings().filter(b => b.driverPhone === partner.phone && b.status !== 'Payment Verification Pending');
+    const totalEarnings = bookings.reduce((s, b) => s + b.driverPayout, 0);
+    const totalTrips = bookings.length;
+
+    el.innerHTML = `
+      <div class="id-card">
+        <div class="id-top">
+          <div class="id-logo">Bharat <span>Safar</span></div>
+          <span class="status-pill ${partner.verified ? 'verified' : 'pending'}">${partner.verified ? '✔ Verified' : '⏳ Pending'}</span>
+        </div>
+        <div class="id-name">${partner.name}</div>
+        <div class="id-role">${partner.vehicleType} Partner • ID: ${partner.id}</div>
+        <div class="id-row"><span>Vehicle Number</span><b>${partner.vehicleNumber || '—'}</b></div>
+        <div class="id-row"><span>Mobile</span><b>${partner.phone}</b></div>
+        <div class="id-row"><span>Aadhaar</span><b>${partner.aadhaar}</b></div>
+        <div class="id-row"><span>PAN</span><b>${partner.pan}</b></div>
+        <div class="id-row"><span>Partner Since</span><b>${partner.joinDate}</b></div>
+      </div>
+
+      ${!partner.verified ? `<div class="form-card" style="text-align:center;color:var(--muted);font-size:0.85rem;">Aapka verification abhi Admin ke paas pending hai. Approve hote hi aap trips lena shuru kar sakte hain.</div>` : ''}
+
+      <div class="summary-cards">
+        <div class="mini-stat"><div class="num">${totalTrips}</div><div class="lbl">Total Trips</div></div>
+        <div class="mini-stat"><div class="num">₹${totalEarnings}</div><div class="lbl">Total Kamai (85%)</div></div>
+      </div>
+
+      <div class="form-card">
+        <h3>🧾 Recent Trips</h3>
+        ${bookings.length === 0 ? `<div class="hint">Abhi tak koi trip nahi hui.</div>` :
+          bookings.slice(0, 10).map(b => `
+            <div class="trip-row">
+              <div class="tr-left"><b>${b.custName} • ${b.distance} km</b><span>${b.timestamp} • ${b.partnerStatus || 'New Booking'}</span></div>
+              <div class="tr-right">+₹${b.driverPayout}</div>
+            </div>
+          `).join('')
+        }
+      </div>
+
+      <button class="btn-outline" onclick="loggedInPartnerPhone=null; renderPartnerView();">🚪 Logout</button>
+    `;
+  }
+
+  function partnerLogin() {
+    const phone = document.getElementById('partner-login-phone').value.trim();
+    const partners = loadPartners();
+    const partner = partners.find(p => p.phone === phone);
+    if (!partner) { alert('Yeh number registered nahi hai. Pehle register karein.'); return; }
+    loggedInPartnerPhone = phone;
+    if (partner.blocked) {
+      alert('🚫 Aapka account BLOCKED hai (commission nahi dene ke karan). Dashboard mein details dekhein.');
+    }
+    renderPartnerView();
+    setTimeout(checkPartnerBookingNotifications, 200);
+  }
+
+  function registerPartner() {
+    const name = document.getElementById('reg-name').value.trim();
+    const phone = document.getElementById('reg-phone').value.trim();
+    const vtype = document.getElementById('reg-vtype').value;
+    const vnum = document.getElementById('reg-vnum').value.trim().toUpperCase();
+    const aadhaar = document.getElementById('reg-aadhaar').value.trim();
+    const pan = document.getElementById('reg-pan').value.trim().toUpperCase();
+
+    if (!name) { alert('Kripya apna naam darj karein!'); return; }
+    if (!/^\d{10}$/.test(phone)) { alert('Sahi 10-digit mobile number darj karein!'); return; }
+    if (!/^[A-Z]{2}\d{1,2}\s?[A-Z]{1,2}\s?\d{4}$/.test(vnum)) { alert('Sahi vehicle number darj karein (jaise BR06 AB 1234)!'); return; }
+    if (!/^\d{12}$/.test(aadhaar)) { alert('Sahi 12-digit Aadhaar number darj karein!'); return; }
+    if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(pan)) { alert('Sahi PAN number darj karein (jaise ABCDE1234F)!'); return; }
+
+    const partners = loadPartners();
+    if (partners.some(p => p.phone === phone)) { alert('Yeh number pehle se registered hai!'); return; }
+    if (partners.some(p => p.vehicleNumber === vnum)) { alert('Yeh vehicle number pehle se registered hai!'); return; }
+
+    const newPartner = {
+      id: 'LRP' + Date.now().toString().slice(-6),
+      name, phone, vehicleType: vtype, vehicleNumber: vnum,
+      aadhaar: aadhaar.replace(/(\d{4})(\d{4})(\d{4})/, '•••• •••• $3'),
+      pan: maskPan(pan),
+      verified: false,
+      blocked: false,
+      online: false,
+      joinDate: new Date().toLocaleDateString('en-IN')
+    };
+    partners.unshift(newPartner);
+    savePartners(partners);
+
+    alert('Registration ho gaya! Admin verify karega, phir aap login kar sakte hain.');
+    loggedInPartnerPhone = phone;
+    renderPartnerView();
+    setTimeout(checkPartnerBookingNotifications, 200);
+  }
+
+  // ══════════════ ADMIN VIEW ══════════════
+  let adminLoggedIn = false;
+  let adminTab = 'bookings';
+
+  function renderAdminView() {
+    const el = document.getElementById('admin-content');
+    if (!adminLoggedIn) {
+      el.innerHTML = `
+        <div class="form-card">
+          <h3>🔒 Admin Login</h3>
+          <label>4-6 Digit PIN</label>
+          <input type="password" id="admin-pin" maxlength="8" placeholder="PIN darj karein"/>
+          <button class="btn-confirm" style="margin-top:14px;" onclick="adminLogin()">Login</button>
+        </div>
+      `;
+      return;
+    }
+
+    const bookings = loadBookings();
+    const partners = loadPartners();
+    const totalRevenue = bookings.reduce((s, b) => s + b.total, 0);
+    const totalFee = bookings.reduce((s, b) => s + b.fee, 0);
+    const pendingPartners = partners.filter(p => !p.verified).length;
+
+    el.innerHTML = `
+      <div class="summary-cards">
+        <div class="mini-stat"><div class="num">${bookings.length}</div><div class="lbl">Total Bookings</div></div>
+        <div class="mini-stat"><div class="num">₹${totalRevenue}</div><div class="lbl">Total Revenue</div></div>
+        <div class="mini-stat"><div class="num">₹${totalFee}</div><div class="lbl">Platform Fee (15%)</div></div>
+        <div class="mini-stat"><div class="num">${pendingPartners}</div><div class="lbl">Pending Partners</div></div>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab ${adminTab==='bookings'?'active':''}" onclick="adminTab='bookings'; renderAdminView();">📋 Bookings</button>
+        <button class="admin-tab ${adminTab==='partners'?'active':''}" onclick="adminTab='partners'; renderAdminView();">🚖 Partners</button>
+      </div>
+
+      <div class="form-card">
+        ${adminTab === 'bookings' ? renderAdminBookings(bookings) : renderAdminPartners(partners)}
+      </div>
+
+      <button class="btn-outline" onclick="adminLoggedIn=false; renderAdminView();">🚪 Logout</button>
+    `;
+  }
+
+  function renderAdminBookings(bookings) {
+    if (bookings.length === 0) return `<div class="hint">Abhi tak koi booking nahi hui.</div>`;
+    return bookings.map(b => `
+      <div class="trip-row">
+        <div class="tr-left"><b>${b.custName} • ${b.vehicleType} • ${b.distance}km</b><span>${b.driverName} • ${b.timestamp} • ${b.partnerStatus || 'New Booking'}</span></div>
+        <div class="tr-right">₹${b.total}<br/><span style="font-weight:400;color:var(--muted);font-size:0.72rem;">Fee ₹${b.fee}</span></div>
+      </div>
+    `).join('');
+  }
+
+  function renderAdminPartners(partners) {
+    if (partners.length === 0) return `<div class="hint">Koi partner registered nahi hai.</div>`;
+    return partners.map(p => `
+      <div class="trip-row" style="align-items:flex-start;">
+        <div class="tr-left">
+          <b>${p.name} • ${p.vehicleType} • ${p.vehicleNumber || '—'}</b>
+          <span>${p.phone} • ${p.pan} • ${p.joinDate}</span>
+          ${p.blocked ? '<span style="display:block;color:var(--red);font-size:0.75rem;font-weight:700;margin-top:4px;">🚫 Commission nahi diya — BLOCKED</span>' : ''}
+        </div>
+        <div style="text-align:right;">
+          <span class="status-pill ${p.blocked ? 'blocked' : (p.verified ? 'verified' : 'pending')}">${p.blocked ? '🚫 Blocked' : (p.verified ? '✔ Verified' : '⏳ Pending')}</span>
+          <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+            ${!p.verified && !p.blocked ? `<button class="btn-sm btn-approve" onclick="approvePartner('${p.id}')">Approve</button>` : ''}
+            ${p.blocked
+              ? `<button class="btn-sm btn-approve" onclick="toggleBlockPartner('${p.id}')">🔓 Unblock</button>`
+              : `<button class="btn-sm btn-reject" onclick="toggleBlockPartner('${p.id}')">🚫 Block (Commission)</button>`}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function adminLogin() {
+    const pin = document.getElementById('admin-pin').value.trim();
+    if (pin !== ADMIN_PIN) { alert('Galat PIN! Dobara koshish karein.'); return; }
+    adminLoggedIn = true;
+    renderAdminView();
+  }
+
+  function approvePartner(id) {
+    const partners = loadPartners();
+    const p = partners.find(x => x.id === id);
+    if (p) { p.verified = true; savePartners(partners); }
+    renderAdminView();
+  }
+
+  function toggleBlockPartner(id) {
+    const partners = loadPartners();
+    const p = partners.find(x => x.id === id);
+    if (!p) return;
+    if (p.blocked) {
+      p.blocked = false;
+      alert('✅ Partner unblock ho gaya. Ab woh trips le sakta hai.');
+    } else {
+      p.blocked = true;
+      p.online = false;
+      alert('🚫 Partner block ho gaya! Commission nahi dene ke karan. Woh online nahi ho sakta aur nayi bookings nahi le sakta.');
+    }
+    savePartners(partners);
+    renderAdminView();
+  }
+
+  // ══════════════ HELP VIEW ══════════════
+  function renderHelpView() {
+    const el = document.getElementById('help-content');
+    const faqs = [
+      { q: 'Booking kaise karein?', a: 'Home page par vehicle choose karein, apni details bharein aur booking confirm karein. Payment ride poori hone ke baad driver ko UPI ya Cash se dein.' },
+      { q: 'Partner kaise banein?', a: 'Partner tab mein "Naye Partner Register Karein" form bharein — Aadhaar aur PAN ke saath. Admin verify karne ke baad aap trips lena shuru kar sakte hain.' },
+      { q: 'Kiraya kitna lagta hai?', a: 'Din me ₹40 per km aur raat 10 baje se subah 6 baje tak ₹45 per km. Kul kiraya booking ke time hi dikh jata hai.' },
+      { q: 'Payment refund kaise hoga?', a: 'Kisi bhi payment issue ke liye neeche diye gaye WhatsApp ya call number par sampark karein, hum 24 ghante mein resolve karenge.' },
+    ];
+    el.innerHTML = `
+      ${faqs.map((f,i) => `
+        <div class="faq-item" id="faq-${i}">
+          <div class="faq-q" onclick="document.getElementById('faq-${i}').classList.toggle('open')">
+            <span>${f.q}</span><span>▾</span>
+          </div>
+          <div class="faq-a">${f.a}</div>
+        </div>
+      `).join('')}
+
+      <div class="form-card" style="margin-top:20px;">
+        <h3>📞 Hume Sampark Karein</h3>
+        <div class="contact-grid">
+          <a class="contact-btn" href="https://wa.me/918089156724" target="_blank"><span class="ic">💬</span>WhatsApp 1</a>
+          <a class="contact-btn" href="https://wa.me/917970867110" target="_blank"><span class="ic">💬</span>WhatsApp 2</a>
+          <a class="contact-btn" href="tel:8089156724"><span class="ic">📞</span>Call 1</a>
+          <a class="contact-btn" href="tel:7970867110"><span class="ic">📞</span>Call 2</a>
+          <a class="contact-btn" href="mailto:rahulk39377@gmail.com"><span class="ic">📧</span>Email</a>
+          <a class="contact-btn" href="#" onclick="switchView('home', document.querySelector('.nav-btn')); return false;"><span class="ic">🏠</span>Home</a>
+        </div>
+      </div>
+
+      <div class="form-card" style="margin-top:14px;text-align:center;">
+        <a href="#" onclick="document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-privacy').classList.add('active');return false;" style="color:var(--saffron);font-weight:700;font-size:0.85rem;">🔒 Privacy Policy Padhein</a>
+      </div>
+    `;
+  }
+
+  // ══════════════ BHARAT SAFAR EXTRA FEATURES ══════════════
+  function bookingForm() {
+    const fare = currentVehicle.ratePerKm;
+    const fee = Math.round(fare * PLATFORM_FEE_PCT);
+    return `
+      <h2>Booking Karein</h2>
+      <p class="modal-sub">${currentVehicle.emoji} ${currentVehicle.name} — ₹${currentVehicle.ratePerKm}/kilometer</p>
+      <label>Aapka Naam</label><input type="text" id="cust-name" placeholder="Jaise: Ravi Sharma"/>
+      <label>Mobile Number</label><input type="tel" id="cust-phone" placeholder="10-digit mobile number"/>
+      <label>Pickup Location</label><input type="text" id="pickup" placeholder="Pickup address"/>
+      <label>Drop Location</label><input type="text" id="drop" placeholder="Drop address"/>
+      <button type="button" class="btn-outline" style="margin-top:8px;padding:10px;font-size:.82rem;" onclick="closeModalDirect();document.getElementById('home-map-section')?.scrollIntoView({behavior:'smooth'});ensureMapOnHome();if(typeof appendPaMsg==='function')appendPaMsg('bot','🗺️ Map par Pickup/Drop set karke Route → Booking mein use karein.')">🗺️ Map par Pickup / Drop chunein</button>
+      <label>Date</label><input type="date" id="trip-date" min="${new Date().toISOString().slice(0,10)}"/>
+      <label>Time</label><input type="time" id="trip-time" onchange="updateSummary()"/>
+      <label>Kitne Kilometer jana hai?</label><input type="number" id="distance" min="1" max="1000" value="1" placeholder="Kilometer" oninput="updateSummary()"/>
+      <div class="modal-summary" id="summary">
+        <div class="row"><span>Vehicle</span><span>${currentVehicle.emoji} ${currentVehicle.type}</span></div>
+        <div class="row"><span>Driver</span><span>👨‍✈️ ${currentVehicle.driver}</span></div>
+        <div class="row"><span>Rate</span><span id="rate-amt">₹${currentVehicle.ratePerKm}/km</span></div>
+        <div class="row"><span><b>Kul Kiraya (1 km)</b></span><span id="total-price"><b>₹${fare}</b></span></div>
+      </div>
+      <button class="btn-confirm" onclick="proceedToPayment()">➡️ Payment Par Jayein</button>`;
+  }
+
+  function proceedToPayment() {
+    const name=document.getElementById('cust-name')?.value.trim();
+    const phone=document.getElementById('cust-phone')?.value.trim();
+    const pickup=document.getElementById('pickup')?.value.trim();
+    const drop=document.getElementById('drop')?.value.trim();
+    const date=document.getElementById('trip-date')?.value;
+    const time=document.getElementById('trip-time')?.value;
+    const km=parseInt(document.getElementById('distance')?.value)||1;
+    if(!name){alert('Kripya apna naam darj karein!');return}
+    if(!/^\d{10}$/.test(phone)){alert('Kripya sahi 10-digit mobile number darj karein!');return}
+    if(!pickup||!drop){alert('Pickup aur Drop location bharein!');return}
+    if(!date||!time){alert('Date aur Time select karein!');return}
+    if(km<1||km>1000){alert('Kilometer 1 se 1000 ke beech hone chahiye!');return}
+    const due=loadBookings().filter(b=>b.custPhone===phone&&b.status==='Completed'&&b.paymentStatus==='Payment Due');
+    if(due.length){const amt=due.reduce((t,b)=>t+(b.total||0),0);alert('⚠️ Aapka pichhli ride ka ₹'+amt+' baaki hai (Booking '+due.map(b=>b.id).join(', ')+'). Payment karne ke baad hi nayi booking ho sakti hai.\n\nSampark: 8089156724 / 7970867110');return}
+    if(new Date(date+'T'+time)<new Date()){alert('Pichla samay select nahi kar sakte. Aage ki date/time chunein!');return}
+    const total=km*rateFor(time), fee=Math.round(total*PLATFORM_FEE_PCT), driverPayout=total-fee;
+    const bid='BS'+Date.now().toString().slice(-6);
+    currentBookingDraft={bid,name,phone,pickup,drop,date,time,km,total,fee,driverPayout};
+    document.getElementById('modal-content').innerHTML=`
+      <h2>📋 Booking Confirm Karein</h2><p class="modal-sub">Payment ride poori hone ke baad dena hai</p>
+      <div class="modal-summary"><div class="row"><span>Vehicle</span><span>${currentVehicle.emoji} ${currentVehicle.type}</span></div><div class="row"><span>Rate</span><span>₹${rateFor(time)}/km${isNightTime(time)?' 🌙 Night':''}</span></div><div class="row"><span>Distance</span><span>${km} km</span></div><div class="row"><span><b>Kul Kiraya</b></span><span><b>₹${total}</b></span></div></div>
+      <div class="booking-meta">📍 ${pickup} → ${drop}<br/>📅 ${date} • 🕐 ${time}</div>
+      <div class="hint" style="margin:10px 0;">💰 Abhi koi payment nahi. Ride poori hone ke baad driver ko UPI ya Cash se ₹${total} dein.</div>
+      <button class="btn-confirm" onclick="confirmBooking()">✅ Booking Confirm Karein</button>
+      <button class="btn-outline" style="margin-top:8px;" onclick="document.getElementById('modal-content').innerHTML=bookingForm(); document.getElementById('distance').value=${km};">⬅️ Wapas Jayein</button>`;
+  }
+
+  function confirmBooking(){
+    const d=currentBookingDraft; if(!d){alert('Booking draft nahi mila, dobara koshish karein.');return}
+    const bookingId=d.bid||('BS'+Date.now().toString().slice(-6));
+    if(loadBookings().some(x=>x.id===bookingId)){alert('Ye booking pehle hi ho chuki hai.');return}
+    const otp=String(Math.floor(1000+Math.random()*9000));
+    const otpSalt=newSalt(), otpHash=otpHashOf(bookingId,otpSalt,otp);
+    rememberOtp(bookingId,otp);
+    const bookings=loadBookings();
+    bookings.unshift({id:bookingId,custName:d.name,custPhone:d.phone,vehicleType:currentVehicle.type,driverName:currentVehicle.driver,driverPhone:currentVehicle.driverPhone,distance:d.km,total:d.total,fee:d.fee,driverPayout:d.driverPayout,pickup:d.pickup,drop:d.drop,tripDate:d.date,tripTime:d.time,payment:'Pay After Trip',paymentStatus:'Pending (Trip ke baad)',otpSalt:otpSalt,otpHash:otpHash,otpVerified:false,status:'Confirmed',partnerStatus:'New Booking',rating:0,timestamp:new Date().toLocaleString('en-IN')});
+    saveBookings(bookings);
+    currentBookingDraft=null;
+    document.getElementById('modal-content').innerHTML=`<div class="success-box"><div class="success-icon">🎉</div><h2>Booking Ho Gayi!</h2><p>Booking ID <strong>${bookingId}</strong></p><div class="driver-info">👨‍✈️ Driver: ${currentVehicle.driver}<br/>📍 ${d.pickup} → ${d.drop}<br/>📅 ${d.date} • 🕐 ${d.time}<br/>💰 Ride ke baad dena hai: ₹${d.total}</div><div style="margin:12px 0;padding:12px;border:2px dashed var(--saffron);border-radius:12px;text-align:center;"><div style="font-size:.8rem;color:var(--muted);">🔐 Aapka Trip OTP</div><div style="font-size:2rem;font-weight:800;letter-spacing:8px;">${otp}</div><div style="font-size:.72rem;color:var(--muted);">Ye OTP driver ko tabhi batayein jab wo pickup par pahunch jaye. OTP ke baad hi driver ko drop location dikhegi.</div></div><button class="btn-confirm" onclick="shareBooking('${bookingId}')">📲 WhatsApp Share</button><button class="btn-outline" onclick="closeModalDirect()">👍 Theek Hai</button></div>`;
+  }
+
+  function showTripPayment(id){
+    const b=loadBookings().find(x=>x.id===id); if(!b) return;
+    const upiUri=`upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('Bharat Safar')}&am=${b.total}&cu=INR&tn=${encodeURIComponent('BharatSafar '+b.id)}`;
+    const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`;
+    document.getElementById('modal-content').innerHTML=`<h2>💳 Trip Payment</h2><p class="modal-sub">Booking ${b.id} • Ride poori ho gayi. Customer se payment lein.</p>
+      <div class="upi-box"><img src="${qrUrl}" alt="UPI QR" width="180" height="180" style="border-radius:12px;border:1.5px solid var(--border);background:#fff;"/><div class="upi-id" style="margin-top:10px;">${UPI_ID}</div><div class="upi-amt">₹${b.total}</div><button class="btn-confirm" style="margin-top:10px;" onclick="window.location.href='${upiUri}'">📱 UPI App Mein Kholein</button></div>
+      <div class="modal-summary" style="margin-top:10px;"><label style="font-weight:700;font-size:.85rem;">UPI se diya? 12 ank ka UTR</label><input type="tel" id="utr-no" maxlength="12" inputmode="numeric" placeholder="UPI Transaction ID (UTR)"/></div>
+      <button class="btn-confirm" onclick="submitTripPayment('${b.id}','UPI')">✅ UPI Payment Mila</button>
+      <button class="btn-outline" style="margin-top:8px;" onclick="submitTripPayment('${b.id}','Cash')">💵 Cash Mila</button>`;
+    document.getElementById('overlay').classList.add('open');
+  }
+
+  function submitTripPayment(id,mode){
+    const list=loadBookings(), b=list.find(x=>x.id===id); if(!b) return;
+    if(mode==='UPI'){
+      const utr=(document.getElementById('utr-no')?.value||'').trim();
+      if(!/^\d{12}$/.test(utr)){alert('Kripya sahi 12 ank ka UPI Transaction ID (UTR) daalein!');return}
+      if(list.some(x=>x.utr===utr)){alert('Ye UTR pehle hi use ho chuka hai!');return}
+      b.utr=utr; b.payment='UPI'; b.paymentStatus='UPI Verification Pending';
+    } else {
+      b.payment='Cash'; b.paymentStatus='Paid (Cash)';
+    }
+    saveBookings(list); renderPartnerView(); renderAdminView();
+    document.getElementById('modal-content').innerHTML=`<div class="success-box"><div class="success-icon">✅</div><h2>Payment Darj Ho Gaya</h2><p>${mode==='UPI'?'Admin payment verify karega.':'Cash payment darj ho gaya.'}</p><button class="btn-outline" onclick="closeModalDirect()">👍 Theek Hai</button></div>`;
+  }
+
+  function shareBooking(id){
+    const b=loadBookings().find(x=>x.id===id); if(!b)return;
+    const txt=`Bharat Safar Booking ${b.id}\n${b.vehicleType} • ${b.distance} km\n${b.pickup} → ${b.drop}\n${b.tripDate} ${b.tripTime}\nTotal ₹${b.total}\nOTP: ${getMyOtp(b.id)||'—'} (sirf driver ko batayein)`;
+    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+  }
+
+  function startTripWithOtp(id){
+    const list=loadBookings(), b=list.find(x=>x.id===id); if(!b)return;
+    const partner=loadPartners().find(p=>p.phone===loggedInPartnerPhone);
+    if(partner&&partner.blocked){ alert('🚫 Aap blocked ho. Koi action nahi le sakte.'); return; }
+    if(bookingHasOtp(b)&&!b.otpVerified){
+      const entered=(prompt('Customer se 4 ank ka OTP lekar daalein:')||'').trim();
+      if(!entered) return;
+      if(!checkOtp(b,entered)){ alert('❌ Galat OTP! Customer se sahi OTP puchein.'); return; }
+      b.otpVerified=true;
+    }
+    b.status='Trip Started'; b.partnerStatus='Trip Started';
+    saveBookings(list); renderPartnerView(); renderAdminView();
+    alert('✅ OTP sahi hai. Trip shuru! Drop location: '+(b.drop||'—'));
+  }
+  function setBookingStatus(id,status){
+    const list=loadBookings(), b=list.find(x=>x.id===id); if(!b)return;
+    const partner=loadPartners().find(p=>p.phone===loggedInPartnerPhone);
+    if(partner&&partner.blocked){ alert('🚫 Aap blocked ho. Koi action nahi le sakte.'); return; }
+    if(status==='Trip Started'&&bookingHasOtp(b)&&!b.otpVerified){ startTripWithOtp(id); return; }
+    if(status==='Completed'){ b.status='Completed'; b.partnerStatus='Completed'; if(!/^(Paid|UPI)/.test(b.paymentStatus||'')) b.paymentStatus='Payment Due'; saveBookings(list); renderPartnerView(); renderAdminView(); showTripPayment(id); return; }
+    b.status=status; b.partnerStatus=status; saveBookings(list); renderPartnerView(); renderAdminView();
+  }
+  function cancelBooking(id){
+    const list=loadBookings(), b=list.find(x=>x.id===id); if(!b)return;
+    if(['Completed','Cancelled'].includes(b.status)){alert('Is booking ko cancel nahi kiya ja sakta.');return}
+    b.status='Cancelled'; b.partnerStatus='Cancelled'; b.cancellation='Customer/Partner cancellation'; saveBookings(list); renderPartnerView(); renderAdminView(); alert('Booking cancel ho gayi. Refund admin policy ke hisaab se process hoga.');
+  }
+  function rateBooking(id,rating){
+    const list=loadBookings(), b=list.find(x=>x.id===id); if(!b)return; b.rating=rating; saveBookings(list); alert('⭐ Rating save ho gayi!'); renderPartnerView();
+  }
+  function togglePartnerOnline(){
+    const list=loadPartners(), p=list.find(x=>x.phone===loggedInPartnerPhone); if(!p)return;
+    if(p.blocked){ alert('🚫 Aap blocked ho. Commission nahi dene ke karan aap online nahi ho sakte. Admin se sampark karein.'); return; }
+    p.online=!p.online; savePartners(list); renderPartnerView();
+  }
+
+  function renderPartnerView(){
+    const el=document.getElementById('partner-content');
+    if(!loggedInPartnerPhone){
+      el.innerHTML=`<div class="form-card"><h3>🔑 Partner Login</h3><label>Registered Mobile Number</label><input type="tel" id="partner-login-phone" placeholder="10-digit mobile number"/><button class="btn-confirm" style="margin-top:14px;" onclick="partnerLogin()">Login</button></div><div class="form-card"><h3>📝 Naye Partner Register Karein</h3><label>Pura Naam</label><input type="text" id="reg-name" placeholder="Jaise: Anil Kumar"/><label>Mobile Number</label><input type="tel" id="reg-phone" placeholder="10-digit mobile number"/><label>Vehicle Type</label><select id="reg-vtype"><option>Bike</option><option>Auto</option><option>Car</option><option>Bus</option><option>Truck</option></select><label>Vehicle Number</label><input type="text" id="reg-vnum" maxlength="13" placeholder="Jaise: BR06 AB 1234"/><label>Aadhaar Number</label><input type="text" id="reg-aadhaar" maxlength="12" placeholder="12-digit Aadhaar number"/><label>PAN Number</label><input type="text" id="reg-pan" maxlength="10" placeholder="ABCDE1234F"/><div class="hint" style="margin-top:6px;">Register karke aap hamari <a href="#" onclick="document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-privacy').classList.add('active');return false;" style="color:var(--saffron);font-weight:700;">Privacy Policy</a> se sehmat hote hain.</div><button class="btn-confirm" style="margin-top:14px;" onclick="registerPartner()">✅ Register Karein</button></div>`; return;
+    }
+    const partners=loadPartners(), p=partners.find(x=>x.phone===loggedInPartnerPhone); if(!p){loggedInPartnerPhone=null;renderPartnerView();return}
+    if(p.blocked){
+      el.innerHTML=`<div class="form-card" style="text-align:center;border-color:var(--red);">
+        <div style="font-size:2.5rem;margin-bottom:10px;">🚫</div>
+        <h3 style="color:var(--red);margin-bottom:8px;">Aapka Account BLOCKED Hai</h3>
+        <p style="font-size:0.9rem;color:var(--muted);line-height:1.5;margin-bottom:12px;">Platform commission (15%) na dene ke karan aapka account block kar diya gaya hai.<br/>Aap online nahi ho sakte aur nayi bookings nahi le sakte.</p>
+        <p style="font-size:0.85rem;margin-bottom:16px;">Unblock ke liye Admin se sampark karein aur pending commission clear karein.</p>
+        <div class="contact-grid" style="margin-bottom:14px;">
+          <a class="contact-btn" href="https://wa.me/918089156724" target="_blank"><span class="ic">💬</span>WhatsApp 1</a>
+          <a class="contact-btn" href="https://wa.me/917970867110" target="_blank"><span class="ic">💬</span>WhatsApp 2</a>
+          <a class="contact-btn" href="tel:8089156724"><span class="ic">📞</span>Call 1</a>
+          <a class="contact-btn" href="tel:7970867110"><span class="ic">📞</span>Call 2</a>
+        </div>
+        <button class="btn-outline" onclick="loggedInPartnerPhone=null; renderPartnerView();">🚪 Logout</button>
+      </div>`;
+      return;
+    }
+    const bookings=loadBookings().filter(b=>b.driverPhone===p.phone&&b.status!=='Payment Verification Pending'), completed=bookings.filter(b=>b.status==='Completed');
+    const total=completed.reduce((s,b)=>s+(b.driverPayout||0),0), todayKey=new Date().toLocaleDateString('en-IN'), today=completed.filter(b=>String(b.timestamp).startsWith(todayKey)).reduce((s,b)=>s+(b.driverPayout||0),0);
+    el.innerHTML=`<div class="id-card"><div class="id-top"><div class="id-logo">Bharat <span>Safar</span></div><span class="status-pill ${p.verified?'verified':'pending'}">${p.verified?'✔ Verified':'⏳ Pending'}</span></div><div class="id-name">${p.name}</div><div class="id-role">${p.vehicleType} Partner • ID: ${p.id}</div><div class="id-row"><span>Vehicle</span><b>${p.vehicleNumber||'—'}</b></div><div class="id-row"><span>Mobile</span><b>${p.phone}</b></div></div>
+      <div class="form-card"><div class="online-row"><div><b><span class="online-dot ${p.online?'on':''}"></span>${p.online?'Online':'Offline'}</b><div class="hint">Online rahenge to new bookings milengi.</div></div><button class="btn-sm ${p.online?'btn-danger':'btn-approve'}" onclick="togglePartnerOnline()">${p.online?'Go Offline':'Go Online'}</button></div></div>
+      <div class="feature-grid"><div class="feature-card"><b>Today Earnings</b><div class="big">₹${today}</div></div><div class="feature-card"><b>Total Earnings</b><div class="big">₹${total}</div></div><div class="feature-card"><b>Completed Trips</b><div class="big">${completed.length}</div></div><div class="feature-card"><b>Pending</b><div class="big">${bookings.filter(b=>!['Completed','Cancelled'].includes(b.status)).length}</div></div></div>
+      ${partnerReport(p.phone)}${calcCard('partner')}<div class="form-card" style="margin-top:20px"><h3>🧾 Recent Trips</h3>${bookings.length?bookings.slice(0,10).map(b=>`<div class="trip-row"><div class="tr-left"><b>${b.custName} • ${b.distance} km</b><span>${b.tripDate||''} ${b.tripTime||''} • ${b.status}${b.paymentStatus?' • '+b.paymentStatus:''}</span><span>📍 Pickup: ${b.pickup||''}</span><span>${(bookingHasOtp(b)&&!b.otpVerified)?'🔒 Drop location OTP ke baad dikhegi':'🏁 Drop: '+(b.drop||'')}</span></div><div class="tr-right">₹${b.driverPayout||0}<div class="status-actions">${b.status==='Confirmed'||b.status==='New Booking'?`<button class="btn-status" onclick="setBookingStatus('${b.id}','Accepted')">Accept</button>`:''}${b.status==='Accepted'?`<button class="btn-status" onclick="setBookingStatus('${b.id}','Driver Arriving')">Arriving</button>`:''}${b.status==='Driver Arriving'?`<button class="btn-status" onclick="startTripWithOtp('${b.id}')">🔐 Start (OTP)</button>`:''}${b.status==='Trip Started'?`<button class="btn-status" onclick="setBookingStatus('${b.id}','Completed')">Complete</button>`:''}${(b.status==='Completed'&&b.paymentStatus==='Payment Due')?`<button class="btn-status" onclick="showTripPayment('${b.id}')">💰 Payment Lein</button>`:''}${!['Completed','Cancelled'].includes(b.status)?`<button class="btn-danger" onclick="cancelBooking('${b.id}')">Cancel</button>`:''}</div></div></div>`).join(''):'<div class="hint">Abhi tak koi trip nahi hui.</div>'}</div>
+      <button class="btn-outline" onclick="loggedInPartnerPhone=null; renderPartnerView();">🚪 Logout</button>`;
+  }
+
+  function verifyPayment(id){
+    if(!confirm('Kya aapko is booking ka payment mil gaya hai?')) return;
+    const list=loadBookings(); const b=list.find(x=>x.id===id); if(!b) return;
+    b.paymentStatus=(b.paymentStatus==='Payment Due')?'Paid (Admin)':'Paid (UPI)';
+    saveBookings(list); renderAdminView(); renderPartnerView();
+    alert('✅ Payment verify ho gaya.');
+  }
+
+  // ══════════════ CALCULATOR (customer / partner / admin) ══════════════
+  function calcCard(mode){
+    const titles={customer:'Kiraya Calculator',partner:'Kamai Calculator',admin:'Hisaab Calculator'};
+    const extra = mode==='customer' ? '' : `
+      <label>Kitni trips?</label><input type="number" id="calc-trips-${mode}" min="1" max="1000" value="1" inputmode="numeric" oninput="calcUpdate('${mode}')"/>
+      <label>Payment kaise hui?</label><select id="calc-pay-${mode}" onchange="calcUpdate('${mode}')"><option value="UPI">UPI (paisa company ko)</option><option value="Cash">Cash (paisa driver ko)</option></select>`;
+    return `<div class="form-card" style="margin-top:20px" id="calc-${mode}"><h3>${titles[mode]}</h3>
+      <label>Kitne Kilometer?</label><input type="number" id="calc-km-${mode}" min="1" max="1000" value="10" inputmode="decimal" oninput="calcUpdate('${mode}')"/>
+      <label>Samay</label><select id="calc-time-${mode}" onchange="calcUpdate('${mode}')"><option value="day">Din — ₹${vehicles[0].ratePerKm}/km</option><option value="night">Raat (10 PM–6 AM) — ₹${NIGHT_RATE_PER_KM}/km</option></select>
+      ${extra}
+      <div id="calc-out-${mode}">${calcResult(mode,10,'day',1,'UPI')}</div></div>`;
+  }
+  function calcResult(mode,km,time,trips,pay){
+    km=Number(km); trips=Math.max(1,parseInt(trips)||1);
+    if(!(km>0)) return '<div class="hint" style="margin-top:12px;">Kilometer daalein.</div>';
+    const rate = time==='night' ? NIGHT_RATE_PER_KM : vehicles[0].ratePerKm;
+    const one = Math.round(km*rate);
+    const total = one*trips;
+    const fee = Math.round(total*PLATFORM_FEE_PCT), share = total-fee;
+    const row=(a,b,bold)=>`<div class="row"><span>${bold?'<b>'+a+'</b>':a}</span><span>${bold?'<b>'+b+'</b>':b}</span></div>`;
+    let rows = row('Hisaab', km+' km × ₹'+rate+(trips>1?' × '+trips+' trips':''));
+    if(mode==='customer'){
+      rows += row('Kul Kiraya','₹'+total,true);
+      return `<div class="modal-summary" style="margin-top:14px;">${rows}</div><div class="feature-note">Ye anuman hai. Asli kiraya booking ke samay dikhta hai.</div>`;
+    }
+    rows += row('Kul Kiraya (customer ka)','₹'+total,true);
+    if(mode==='partner'){
+      rows += row('Meri kamai (85%)','₹'+share,true) + row('Company commission (15%)','₹'+fee);
+      rows += pay==='UPI' ? row('Company se milega','₹'+share) : row('Company ko dena (commission)','₹'+fee);
+    } else {
+      rows += row('Aapka commission (15%)','₹'+fee,true) + row('Partner ka hissa (85%)','₹'+share,true);
+      rows += pay==='UPI' ? row('Aapko partner ko dena','₹'+share) : row('Aapko partner se lena','₹'+fee);
+    }
+    return `<div class="modal-summary" style="margin-top:14px;">${rows}</div>`;
+  }
+  function calcUpdate(mode){
+    const g=id=>document.getElementById(id+'-'+mode);
+    const out=document.getElementById('calc-out-'+mode); if(!out||!g('calc-km')) return;
+    out.innerHTML=calcResult(mode,g('calc-km').value,g('calc-time').value,g('calc-trips')?g('calc-trips').value:1,g('calc-pay')?g('calc-pay').value:'UPI');
+  }
+
+  // ══════════════ HISAAB: PARTNER / ADMIN ACCOUNTING ══════════════
+  let partnerPeriod = 'day';
+  function bsDateKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function bsBookingDate(b){
+    if(b.tripDate) return b.tripDate;
+    const m=String(b.timestamp||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    return m ? m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0') : bsDateKey(new Date());
+  }
+  function bsIsCash(b){ return b.payment==='Cash'; }
+  function bsPaid(b){ return b.status==='Completed' && /^Paid/.test(b.paymentStatus||''); }
+  function bsDues(phone){
+    const list=loadBookings().filter(b=>b.driverPhone===phone && bsPaid(b));
+    const upi=list.filter(b=>!bsIsCash(b) && !b.partnerPaid);
+    const cash=list.filter(b=>bsIsCash(b) && !b.commissionReceived);
+    const toPartner=upi.reduce((t,b)=>t+(b.driverPayout||0),0);
+    const fromPartner=cash.reduce((t,b)=>t+(b.fee||0),0);
+    return { toPartner, fromPartner, net: fromPartner-toPartner, upiCount:upi.length, cashCount:cash.length };
+  }
+  function settlePartner(phone, kind){
+    const d=bsDues(phone), amt=kind==='pay'?d.toPartner:d.fromPartner;
+    if(!amt){ alert('Koi baaki rakam nahi hai.'); return; }
+    if(!confirm(kind==='pay' ? 'Kya aapne partner ko ₹'+amt+' bhej diye?' : 'Kya partner se ₹'+amt+' commission mil gaya?')) return;
+    const list=loadBookings(), now=new Date().toLocaleString('en-IN');
+    list.forEach(b=>{
+      if(b.driverPhone!==phone || !bsPaid(b)) return;
+      if(kind==='pay' && !bsIsCash(b) && !b.partnerPaid){ b.partnerPaid=true; b.partnerPaidOn=now; }
+      if(kind==='comm' && bsIsCash(b) && !b.commissionReceived){ b.commissionReceived=true; b.commissionReceivedOn=now; }
+    });
+    saveBookings(list); renderAdminView(); renderPartnerView();
+  }
+  function renderAdminHisaab(){
+    const bookings=loadBookings();
+    const phones=[...new Set(bookings.filter(b=>b.driverPhone).map(b=>b.driverPhone))];
+    if(!phones.length) return '<div class="hint">Abhi koi hisaab nahi hai.</div>';
+    let tp=0, fp=0;
+    const rows=phones.map(ph=>{
+      const d=bsDues(ph); tp+=d.toPartner; fp+=d.fromPartner;
+      const nm=(bookings.find(b=>b.driverPhone===ph)||{}).driverName||ph;
+      const net = d.net>0 ? `<span style="color:var(--green,#138808);font-weight:700;">Partner se aapko lena: ₹${d.net}</span>` : d.net<0 ? `<span style="color:var(--red);font-weight:700;">Aapko partner ko dena: ₹${-d.net}</span>` : `<span style="color:var(--muted);">Hisaab barabar</span>`;
+      return `<div class="trip-row" style="align-items:flex-start;"><div class="tr-left" style="width:100%;"><b>${nm} • ${ph}</b>
+        <span>📱 UPI rides (paisa aapko mila) — partner ko dena: <b>₹${d.toPartner}</b> (${d.upiCount} trip)</span>
+        ${d.toPartner?`<div class="status-actions"><button class="btn-status" onclick="settlePartner('${ph}','pay')">✅ Partner Ko Bhej Diya</button></div>`:''}
+        <span>💵 Cash rides (paisa driver ke paas) — aapko commission lena: <b>₹${d.fromPartner}</b> (${d.cashCount} trip)</span>
+        ${d.fromPartner?`<div class="status-actions"><button class="btn-status" onclick="settlePartner('${ph}','comm')">✅ Commission Mil Gaya</button></div>`:''}
+        <span>${net}</span></div></div>`;
+    }).join('');
+    return `<div class="summary-cards" style="margin-bottom:12px;"><div class="mini-stat"><div class="num">₹${tp}</div><div class="lbl">Partners Ko Dena (UPI)</div></div><div class="mini-stat"><div class="num">₹${fp}</div><div class="lbl">Aapko Lena (Cash)</div></div></div>${rows}`;
+  }
+  function partnerReport(phone){
+    const all=loadBookings().filter(b=>b.driverPhone===phone && b.status==='Completed');
+    const now=new Date(), today=bsDateKey(now);
+    let from, label;
+    if(partnerPeriod==='day'){ from=today; label='Aaj'; }
+    else if(partnerPeriod==='week'){ const d=new Date(now); d.setDate(d.getDate()-6); from=bsDateKey(d); label='Pichhle 7 din'; }
+    else { from=today.slice(0,8)+'01'; label='Is mahine'; }
+    const rng=all.filter(b=>{ const k=bsBookingDate(b); return k>=from && k<=today; });
+    const fare=rng.reduce((t,b)=>t+(b.total||0),0), earn=rng.reduce((t,b)=>t+(b.driverPayout||0),0), comm=rng.reduce((t,b)=>t+(b.fee||0),0);
+    const byDay={}; rng.forEach(b=>{ const k=bsBookingDate(b); (byDay[k]=byDay[k]||{n:0,e:0}); byDay[k].n++; byDay[k].e+=(b.driverPayout||0); });
+    const days=Object.keys(byDay).sort().reverse();
+    const dayRows = partnerPeriod==='day' ? '' : (days.length ? days.map(k=>`<div class="trip-row"><div class="tr-left"><b>${k}</b><span>${byDay[k].n} trip</span></div><div class="tr-right">₹${byDay[k].e}</div></div>`).join('') : '<div class="hint">Is samay me koi trip nahi.</div>');
+    const d=bsDues(phone);
+    const tab=(k,t)=>`<button class="admin-tab ${partnerPeriod===k?'active':''}" onclick="partnerPeriod='${k}';renderPartnerView()">${t}</button>`;
+    return `<div class="form-card" style="margin-top:20px"><h3>📊 Meri Kamai</h3>
+      <div class="admin-tabs">${tab('day','Daily')}${tab('week','Weekly')}${tab('month','Monthly')}</div>
+      <div class="hint" style="margin:8px 0;">${label}</div>
+      <div class="summary-cards"><div class="mini-stat"><div class="num">${rng.length}</div><div class="lbl">Trips</div></div><div class="mini-stat"><div class="num">₹${fare}</div><div class="lbl">Total Kiraya</div></div><div class="mini-stat"><div class="num">₹${earn}</div><div class="lbl">Meri Kamai (85%)</div></div><div class="mini-stat"><div class="num">₹${comm}</div><div class="lbl">Commission (15%)</div></div></div>
+      ${dayRows}
+      <div class="modal-summary" style="margin-top:12px;"><div class="row"><span>💰 Company se milna baaki (UPI rides)</span><span><b>₹${d.toPartner}</b></span></div><div class="row"><span>⚠️ Company ko dena baaki (Cash commission)</span><span><b>₹${d.fromPartner}</b></span></div></div>
+    </div>`;
+  }
+
+  function renderAdminBookings(bookings){
+    if(!bookings.length)return '<div class="hint">Abhi tak koi booking nahi hui.</div>';
+    return bookings.map(b=>`<div class="trip-row"><div class="tr-left"><b>${b.id} • ${b.custName} • ${b.vehicleType} • ${b.distance}km</b><span>${b.driverName} • ${b.timestamp} • ${b.status}${b.paymentStatus?' • '+b.paymentStatus:''}${b.utr?' • UTR '+b.utr:''}${b.payment==='Cash'?' • 💵 Cash':''}</span><span>📍 ${b.pickup||'—'} → ${b.drop||'—'} • 📅 ${b.tripDate||'—'} ${b.tripTime||''}</span></div><div class="tr-right">₹${b.total}<br/><span style="font-weight:400;color:var(--muted);font-size:.72rem;">Fee ₹${b.fee}</span><div class="status-actions">${(b.paymentStatus==='UPI Verification Pending'||b.paymentStatus==='Payment Due')?`<button class="btn-status" onclick="verifyPayment('${b.id}')">✅ Payment Mila</button>`:''}${!['Completed','Cancelled'].includes(b.status)?`<button class="btn-danger" onclick="cancelBooking('${b.id}')">Cancel</button>`:''}${b.status==='Trip Started'?`<button class="btn-status" onclick="setBookingStatus('${b.id}','Completed')">Complete</button>`:''}</div></div></div>`).join('');
+  }
+
+  function renderAdminView(){
+    const el=document.getElementById('admin-content'); if(!adminLoggedIn){el.innerHTML=`<div class="form-card"><h3>🔒 Admin Login</h3><label>4-6 Digit PIN</label><input type="password" id="admin-pin" maxlength="8" placeholder="PIN darj karein"/><button class="btn-confirm" style="margin-top:14px;" onclick="adminLogin()">Login</button></div>`;return}
+    const bookings=loadBookings(), partners=loadPartners(), totalRevenue=bookings.reduce((s,b)=>s+b.total,0), totalFee=bookings.reduce((s,b)=>s+b.fee,0), pendingPartners=partners.filter(p=>!p.verified&&!p.blocked).length, online=partners.filter(p=>p.online&&p.verified&&!p.blocked).length, blockedCount=partners.filter(p=>p.blocked).length;
+    el.innerHTML=`<div class="summary-cards"><div class="mini-stat"><div class="num">${bookings.length}</div><div class="lbl">Total Bookings</div></div><div class="mini-stat"><div class="num">₹${totalRevenue}</div><div class="lbl">Revenue</div></div><div class="mini-stat"><div class="num">₹${totalFee}</div><div class="lbl">15% Commission</div></div><div class="mini-stat"><div class="num">${online}</div><div class="lbl">Partners Online</div></div>${blockedCount?`<div class="mini-stat" style="border-color:var(--red);"><div class="num" style="color:var(--red);">${blockedCount}</div><div class="lbl">Blocked (Commission)</div></div>`:''}</div><div class="admin-tabs"><button class="admin-tab ${adminTab==='bookings'?'active':''}" onclick="adminTab='bookings';renderAdminView()">📋 Bookings</button><button class="admin-tab ${adminTab==='partners'?'active':''}" onclick="adminTab='partners';renderAdminView()">🚖 Partners (${pendingPartners})</button><button class="admin-tab ${adminTab==='hisaab'?'active':''}" onclick="adminTab='hisaab';renderAdminView()">💰 Hisaab</button><button class="admin-tab ${adminTab==='calc'?'active':''}" onclick="adminTab='calc';renderAdminView()">Calculator</button></div><div class="form-card">${adminTab==='bookings'?renderAdminBookings(bookings):adminTab==='hisaab'?renderAdminHisaab():adminTab==='calc'?calcCard('admin'):renderAdminPartners(partners)}</div><button class="btn-outline" style="margin-bottom:8px;" onclick="openAdminReport()">📊 Revenue Report</button><button class="btn-outline" onclick="adminLoggedIn=false;renderAdminView()">🚪 Logout</button>`;
+  }
+
+  // ══════════════ INIT ══════════════
+  renderVehicles('all');
+  document.getElementById('home-calc').innerHTML = calcCard('customer');
+  setTimeout(() => {
+    const el = document.getElementById('fb-status');
+    if (el) {
+      if (firebaseReady) {
+        el.innerHTML = '<span class="badge-ok">🔥 Firebase Connected</span>';
+      } else {
+        el.innerHTML = '<span class="badge-pending">localStorage mode — Firebase config daalein</span>';
+      }
+    }
+  }, 300);
+
+
+
+
+  // ══════════════ MAP / ROAD (Leaflet + OSRM) ══════════════
+  let routeMap = null;
+  let mapPickup = null; // {lat,lng,label}
+  let mapDrop = null;
+  let mapMode = 'pickup'; // pickup | drop
+  let mapPickupMarker = null;
+  let mapDropMarker = null;
+  let mapRouteLine = null;
+  let mapInitialized = false;
+
+  function initRouteMap() {
+    if (mapInitialized || typeof L === 'undefined') return;
+    const el = document.getElementById('route-map');
+    if (!el) return;
+    routeMap = L.map('route-map', { zoomControl: true }).setView([25.5941, 85.1376], 12); // Patna default
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(routeMap);
+    routeMap.on('click', async (e) => {
+      const { lat, lng } = e.latlng;
+      const label = await reverseGeocode(lat, lng);
+      if (mapMode === 'pickup') {
+        mapPickup = { lat, lng, label };
+        if (mapPickupMarker) mapPickupMarker.setLatLng([lat, lng]);
+        else mapPickupMarker = L.marker([lat, lng], { title: 'Pickup' }).addTo(routeMap).bindPopup('📍 Pickup').openPopup();
+        mapPickupMarker.bindPopup('📍 ' + label).openPopup();
+        setMapInfo();
+      } else {
+        mapDrop = { lat, lng, label };
+        if (mapDropMarker) mapDropMarker.setLatLng([lat, lng]);
+        else mapDropMarker = L.marker([lat, lng], { title: 'Drop' }).addTo(routeMap).bindPopup('🏁 Drop').openPopup();
+        mapDropMarker.bindPopup('🏁 ' + label).openPopup();
+        setMapInfo();
+      }
+    });
+    mapInitialized = true;
+    setTimeout(() => routeMap.invalidateSize(), 200);
+  }
+
+  function mapSetMode(mode) {
+    mapMode = mode;
+    const lab = document.getElementById('map-mode-label');
+    if (lab) lab.textContent = mode === 'pickup' ? 'Pickup set karein' : 'Drop set karein';
+    initRouteMap();
+  }
+
+  function setMapInfo() {
+    const el = document.getElementById('map-info');
+    if (!el) return;
+    const p = mapPickup ? mapPickup.label : '—';
+    const d = mapDrop ? mapDrop.label : '—';
+    el.innerHTML = `📍 <b>Pickup:</b> ${p}<br/>🏁 <b>Drop:</b> ${d}` +
+      (mapPickup && mapDrop ? '<br/>Ab <b>Route</b> dabayein road dekhne ke liye.' : '');
+  }
+
+  async function reverseGeocode(lat, lng) {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`, {
+        headers: { 'Accept-Language': 'hi,en' }
+      });
+      const j = await r.json();
+      return j.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    } catch (e) {
+      return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    }
+  }
+
+  async function mapSearchPlace() {
+    initRouteMap();
+    const q = (document.getElementById('map-search')?.value || '').trim();
+    if (!q) return alert('Search mein jagah likhein');
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`, {
+        headers: { 'Accept-Language': 'hi,en' }
+      });
+      const arr = await r.json();
+      if (!arr.length) return alert('Jagah nahi mili');
+      const { lat, lon, display_name } = arr[0];
+      const la = parseFloat(lat), ln = parseFloat(lon);
+      routeMap.setView([la, ln], 15);
+      if (mapMode === 'pickup') {
+        mapPickup = { lat: la, lng: ln, label: display_name };
+        if (mapPickupMarker) mapPickupMarker.setLatLng([la, ln]);
+        else mapPickupMarker = L.marker([la, ln]).addTo(routeMap);
+        mapPickupMarker.bindPopup('📍 ' + display_name).openPopup();
+      } else {
+        mapDrop = { lat: la, lng: ln, label: display_name };
+        if (mapDropMarker) mapDropMarker.setLatLng([la, ln]);
+        else mapDropMarker = L.marker([la, ln]).addTo(routeMap);
+        mapDropMarker.bindPopup('🏁 ' + display_name).openPopup();
+      }
+      setMapInfo();
+    } catch (e) {
+      alert('Search fail — internet check karein');
+    }
+  }
+
+  async function mapDrawRoute() {
+    initRouteMap();
+    if (!mapPickup || !mapDrop) {
+      alert(paLang === 'en' ? 'Set both Pickup and Drop first' : 'Pehle Pickup aur Drop dono set karein');
+      return;
+    }
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${mapPickup.lng},${mapPickup.lat};${mapDrop.lng},${mapDrop.lat}?overview=full&geometries=geojson`;
+      const r = await fetch(url);
+      const j = await r.json();
+      if (j.code !== 'Ok' || !j.routes?.length) {
+        alert('Route nahi mila');
+        return;
+      }
+      const route = j.routes[0];
+      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      if (mapRouteLine) routeMap.removeLayer(mapRouteLine);
+      mapRouteLine = L.polyline(coords, { color: '#E11D48', weight: 5, opacity: 0.85 }).addTo(routeMap);
+      routeMap.fitBounds(mapRouteLine.getBounds(), { padding: [30, 30] });
+      const km = (route.distance / 1000).toFixed(1);
+      const mins = Math.round(route.duration / 60);
+      const el = document.getElementById('map-info');
+      if (el) {
+        el.innerHTML = `📍 <b>Pickup:</b> ${mapPickup.label}<br/>🏁 <b>Drop:</b> ${mapDrop.label}<br/>🛣️ <b>Road distance:</b> ${km} km · ~${mins} min<br/><button class="btn-sm btn-approve" style="margin-top:8px" onclick="mapApplyToBooking()">Booking mein use karein</button>`;
+      }
+      // store for booking
+      window._lastRouteKm = parseFloat(km);
+    } catch (e) {
+      alert('Route load fail — internet check karein');
+    }
+  }
+
+  function mapUseMyGPS() {
+    initRouteMap();
+    if (!navigator.geolocation) return alert('GPS available nahi');
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const label = await reverseGeocode(lat, lng);
+      routeMap.setView([lat, lng], 15);
+      if (mapMode === 'pickup') {
+        mapPickup = { lat, lng, label };
+        if (mapPickupMarker) mapPickupMarker.setLatLng([lat, lng]);
+        else mapPickupMarker = L.marker([lat, lng]).addTo(routeMap);
+        mapPickupMarker.bindPopup('📍 ' + label).openPopup();
+      } else {
+        mapDrop = { lat, lng, label };
+        if (mapDropMarker) mapDropMarker.setLatLng([lat, lng]);
+        else mapDropMarker = L.marker([lat, lng]).addTo(routeMap);
+        mapDropMarker.bindPopup('🏁 ' + label).openPopup();
+      }
+      setMapInfo();
+    }, () => alert('GPS permission allow karein'));
+  }
+
+  function mapApplyToBooking() {
+    if (!mapPickup || !mapDrop) return;
+    // Prefer opening car booking with fields prefilled via session
+    window._mapBookingPrefill = {
+      pickup: mapPickup.label,
+      drop: mapDrop.label,
+      km: window._lastRouteKm || 1
+    };
+    if (typeof openBooking === 'function' && vehicles?.length) {
+      const car = vehicles.find(v => v.type === 'Car') || vehicles[0];
+      openBooking(car.id);
+      setTimeout(() => {
+        const p = document.getElementById('pickup');
+        const d = document.getElementById('drop');
+        const dist = document.getElementById('distance');
+        if (p) p.value = mapPickup.label;
+        if (d) d.value = mapDrop.label;
+        if (dist && window._lastRouteKm) {
+          dist.value = Math.max(1, Math.round(window._lastRouteKm));
+          if (typeof updateSummary === 'function') updateSummary();
+        }
+      }, 200);
+    }
+    if (typeof appendPaMsg === 'function') {
+      appendPaMsg('bot', (paLang === 'hi'
+        ? `🗺️ Map se booking fill ki: ${mapPickup.label} → ${mapDrop.label}` + (window._lastRouteKm ? ` (${window._lastRouteKm} km)` : '')
+        : `🗺️ Filled booking from map: ${mapPickup.label} → ${mapDrop.label}` + (window._lastRouteKm ? ` (${window._lastRouteKm} km)` : '')));
+    }
+  }
+
+  // Init map when home visible
+  function ensureMapOnHome() {
+    if (document.getElementById('view-home')?.classList.contains('active')) {
+      initRouteMap();
+      setTimeout(() => routeMap && routeMap.invalidateSize(), 300);
+    }
+  }
+
+
+  // ══════════════ PERSONAL ASSISTANT (HI + EN) — APP CONTROL ══════════════
+  let paLang = localStorage.getItem('bharatSafar_paLang') || 'hi';
+  let paOpen = false;
+
+  const PA = {
+    hi: {
+      welcome: 'Namaste! 🙏 Main aapka Safar Assistant hoon — main app control bhi kar sakta hoon.\n\nBolo: "Bike dikhao", "Car book karo", "Partner page kholo", "Kiraya batao", "Help kholo"…\nHindi ya English — dono chalega.',
+      status: 'Hindi · App Control ON',
+      placeholder: 'Command ya sawal likhein...',
+      chips: ['Map kholo', 'Bike dikhao', 'Car book karo', 'Kiraya kitna?', 'Partner kholo', 'Status batao']
+    },
+    en: {
+      welcome: 'Hello! 🙏 I am Safar Assistant — I can control this app for you.\n\nTry: "Show bikes", "Book a car", "Open partner", "What is the fare?", "Open help"…\nHindi or English both work.',
+      status: 'English · App Control ON',
+      placeholder: 'Type a command or question...',
+      chips: ['Open map', 'Show bikes', 'Book a car', 'What is fare?', 'Open partner', 'App status']
+    }
+  };
+
+  function detectLang(text) {
+    if (/[\u0900-\u097F]/.test(text)) return 'hi';
+    if (/\b(how|what|where|when|why|book|fare|rate|price|partner|payment|contact|help|night|vehicle|cancel|otp|show|open|go|status|filter|admin)\b/i.test(text)) return 'en';
+    return paLang;
+  }
+
+  function setPaLang(lang) {
+    paLang = lang;
+    localStorage.setItem('bharatSafar_paLang', lang);
+    document.getElementById('pa-lang-hi')?.classList.toggle('active', lang === 'hi');
+    document.getElementById('pa-lang-en')?.classList.toggle('active', lang === 'en');
+    const st = document.getElementById('pa-status');
+    const inp = document.getElementById('pa-input');
+    if (st) st.textContent = PA[lang].status;
+    if (inp) inp.placeholder = PA[lang].placeholder;
+    renderPaChips();
+  }
+
+  function toggleAssistant(force) {
+    paOpen = typeof force === 'boolean' ? force : !paOpen;
+    document.getElementById('pa-panel')?.classList.toggle('open', paOpen);
+    document.getElementById('pa-fab')?.classList.toggle('open', paOpen);
+    document.getElementById('pa-fab').textContent = paOpen ? '✕' : '💬';
+    if (paOpen) {
+      const box = document.getElementById('pa-messages');
+      if (box && !box.children.length) {
+        appendPaMsg('bot', PA[paLang].welcome);
+        renderPaChips();
+        setPaLang(paLang);
+      }
+      setTimeout(() => document.getElementById('pa-input')?.focus(), 150);
+    }
+  }
+
+  function renderPaChips() {
+    const el = document.getElementById('pa-quick');
+    if (!el) return;
+    el.innerHTML = PA[paLang].chips.map(c =>
+      `<button type="button" class="pa-chip" onclick="paAsk('${c.replace(/'/g, "\\'")}')">${c}</button>`
+    ).join('');
+  }
+
+  function appendPaMsg(role, text) {
+    const box = document.getElementById('pa-messages');
+    if (!box) return;
+    const div = document.createElement('div');
+    div.className = 'pa-msg ' + role;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    div.innerHTML = String(text).replace(/\n/g, '<br>') + `<span class="pa-time">${time}</span>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function paAsk(text) {
+    document.getElementById('pa-input').value = text;
+    sendPaMessage();
+  }
+
+  function paNavBtn(name) {
+    const map = { home: 0, partner: 1, admin: 2, help: 3 };
+    const btns = document.querySelectorAll('.nav-btn');
+    const i = map[name];
+    if (btns[i]) switchView(name, btns[i]);
+  }
+
+  function paFilter(type) {
+    const btns = document.querySelectorAll('.filter-bar .filter-btn');
+    let target = null;
+    btns.forEach(b => {
+      const t = (b.textContent || '').trim().toLowerCase();
+      if (type === 'all' && (t === 'sab' || t === 'all')) target = b;
+      if (type !== 'all' && t === type.toLowerCase()) target = b;
+    });
+    if (target) filterVehicles(type === 'all' ? 'all' : type, target);
+    else filterVehicles(type === 'all' ? 'all' : type, btns[0]);
+  }
+
+  function paAppStatus(hi) {
+    const bookings = (typeof loadBookings === 'function') ? loadBookings() : [];
+    const partners = (typeof loadPartners === 'function') ? loadPartners() : [];
+    const online = partners.filter(p => p.online && p.verified && !p.blocked).length;
+    const pending = partners.filter(p => !p.verified && !p.blocked).length;
+    const activeView = document.querySelector('.view.active')?.id?.replace('view-', '') || 'home';
+    if (hi) {
+      return `📊 App Status\n• Screen: ${activeView}\n• Bookings: ${bookings.length}\n• Partners: ${partners.length} (Online: ${online}, Pending: ${pending})\n• Rate: ₹40/km din · ₹45/km raat\n• Firebase: ${typeof firebaseReady !== 'undefined' && firebaseReady ? 'Connected' : 'localStorage'}\n• Main control ready hoon — command do.`;
+    }
+    return `📊 App Status\n• Screen: ${activeView}\n• Bookings: ${bookings.length}\n• Partners: ${partners.length} (Online: ${online}, Pending: ${pending})\n• Rate: ₹40/km day · ₹45/km night\n• Firebase: ${typeof firebaseReady !== 'undefined' && firebaseReady ? 'Connected' : 'localStorage'}\n• Ready for your next command.`;
+  }
+
+  /** Execute control actions; returns {did, info} */
+  function paExecute(q, lang) {
+    const s = q.toLowerCase().trim();
+    const hi = lang === 'hi';
+    const actions = [];
+
+    // Navigate
+    if (/\b(home|homepage)\b/.test(s) || /होम|होमपेज|home (par|pe|kholo|khol)/.test(s) || /home (kholo|kholo|open)/.test(s)) {
+      paNavBtn('home'); actions.push(hi ? 'Home page khol diya.' : 'Opened Home.');
+    }
+    if (/\bpartner\b/.test(s) && /(open|go|page|khol|dikha|show|dashboard)/.test(s) || /पार्टनर.*(खोल|दिखा|पेज)|partner (kholo|kholein|page)/.test(s)) {
+      paNavBtn('partner'); actions.push(hi ? 'Partner dashboard khol diya. Login ya register kar sakte ho.' : 'Opened Partner dashboard. You can login or register.');
+    }
+    if (/\badmin\b/.test(s) && /(open|go|page|khol|dikha|show|panel)/.test(s) || /एडमिन.*(खोल|दिखा)|admin (kholo|panel)/.test(s)) {
+      paNavBtn('admin'); actions.push(hi ? 'Admin panel khol diya. PIN se login karo.' : 'Opened Admin panel. Login with PIN.');
+    }
+    if (/\bhelp\b/.test(s) && /(open|go|page|khol|dikha|show|support)/.test(s) || /हेल्प.*(खोल|दिखा)|help (kholo|kholein)|support kholo/.test(s)) {
+      paNavBtn('help'); actions.push(hi ? 'Help & Support khol diya.' : 'Opened Help & Support.');
+    }
+
+    // Filters / show vehicles
+    const vMap = [
+      ['bike', 'Bike', /bike|बाइक/],
+      ['auto', 'Auto', /auto|ऑटो|ऑटो/],
+      ['car', 'Car', /car|कार|gaadi|गाड़ी/],
+      ['bus', 'Bus', /bus|बस/],
+      ['truck', 'Truck', /truck|ट्रक/]
+    ];
+    let filtered = false;
+    for (const [key, type, re] of vMap) {
+      if (re.test(s) && /(show|dikha|filter|list|only|sirf|खोल|दिखा|filter)/.test(s) || new RegExp(key + '\\s*(dikhao|dikha|show|list|filter)', 'i').test(s) || new RegExp('(dikhao|dikha|show)\\s*' + key, 'i').test(s)) {
+        paNavBtn('home');
+        paFilter(type);
+        actions.push(hi ? `${type} vehicles filter karke dikha diye.` : `Showing ${type} vehicles.`);
+        filtered = true;
+        break;
+      }
+    }
+    if (!filtered && /(sab|all)\s*(vehicle|gaadi|dikha)|show all|sab dikhao|सभी/.test(s)) {
+      paNavBtn('home');
+      paFilter('all');
+      actions.push(hi ? 'Saari vehicles dikha di.' : 'Showing all vehicles.');
+    }
+
+    // Book vehicle
+    for (const [key, type, re] of vMap) {
+      if (re.test(s) && /(book|booking|reserve|book karo|book karein|बुक)/.test(s)) {
+        const v = vehicles.find(x => x.type === type);
+        if (v) {
+          paNavBtn('home');
+          openBooking(v.id);
+          actions.push(hi
+            ? `${type} booking form khol diya (${v.name}). Naam, mobile, pickup/drop bharein — main yahin hoon madad ke liye.`
+            : `Opened ${type} booking form (${v.name}). Fill name, mobile, pickup/drop — I am here to help.`);
+        }
+        break;
+      }
+    }
+    // Generic book
+    if (!actions.length && /(book|booking|बुक)/.test(s) && !/(kaise|how)/.test(s)) {
+      paNavBtn('home');
+      actions.push(hi
+        ? 'Booking ke liye vehicle choose karo. Bolo: "Bike book karo" ya "Car book karo".'
+        : 'To book, pick a vehicle. Say: "Book a bike" or "Book a car".');
+    }
+
+    // Calculator / fare scroll
+    if (/(calculator|calc|kiraya calc|fare calc|हिसाब)/.test(s)) {
+      paNavBtn('home');
+      document.getElementById('home-calc')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      actions.push(hi ? 'Kiraya Calculator par le aaya.' : 'Scrolled to Fare Calculator.');
+    }
+
+    // SOS
+    if (/\bsos\b|emergency|आपातकाल/.test(s)) {
+      openSOS();
+      actions.push(hi ? '🚨 SOS trigger kar diya (demo). Real emergency mein 112 / 8089156724 call karo.' : '🚨 SOS triggered (demo). For real emergency call 112 / 8089156724.');
+    }
+
+    // GPS
+    if (/\bgps\b|location|लोकेशन|मेरी लोकेशन/.test(s)) {
+      requestGPS();
+      actions.push(hi ? '📍 GPS request bhej di — permission allow karo.' : '📍 GPS requested — please allow permission.');
+    }
+
+    // Invoice
+    if (/invoice|bill|इनवॉइस|बिल/.test(s)) {
+      showInvoice();
+      actions.push(hi ? 'Last invoice check kiya (alert mein details).' : 'Checked last invoice (see alert).');
+    }
+
+    // Referral
+    if (/refer|referral|दोस्त|invite/.test(s)) {
+      openReferral();
+      actions.push(hi ? 'Referral code generate kar diya.' : 'Generated referral code.');
+    }
+
+    // Status
+    if (/\bstatus\b|app status|kya chal raha|report|स्थिति/.test(s)) {
+      actions.push(paAppStatus(hi));
+    }
+
+    // Privacy
+    if (/privacy|policy|प्राइवेसी/.test(s)) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-privacy')?.classList.add('active');
+      actions.push(hi ? 'Privacy Policy page khol diya.' : 'Opened Privacy Policy.');
+    }
+
+
+    // Map control
+    if (/\bmap\b|route|road|nasha|नक्शा|मैप|रूट|रोड|map kholo|open map/.test(s)) {
+      paNavBtn('home');
+      setTimeout(() => {
+        document.getElementById('home-map-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        ensureMapOnHome();
+      }, 200);
+      actions.push(hi
+        ? '🗺️ Map khol diya. Pickup/Drop set karke Route dabayein — road dikhegi.'
+        : '🗺️ Opened map. Set Pickup/Drop then tap Route to see the road.');
+    }
+    if (/route banao|draw route|show route|रूट बनाओ|रास्ता/.test(s)) {
+      paNavBtn('home');
+      setTimeout(() => { ensureMapOnHome(); mapDrawRoute(); }, 250);
+      actions.push(hi ? '🛣️ Route draw kar raha hoon (pickup+drop set hone chahiye).' : '🛣️ Drawing route (pickup & drop must be set).');
+    }
+
+    return actions;
+  }
+
+  function sendPaMessage() {
+    const input = document.getElementById('pa-input');
+    const text = (input?.value || '').trim();
+    if (!text) return;
+    input.value = '';
+    const lang = detectLang(text);
+    if (lang !== paLang) setPaLang(lang);
+    appendPaMsg('user', text);
+    setTimeout(() => {
+      const actions = paExecute(text, lang);
+      let reply;
+      if (actions.length) {
+        reply = actions.join('\n');
+        // Also add tips for pure control commands
+        const s = text.toLowerCase();
+        if (/(book|booking)/.test(s) && actions.some(a => /form/i.test(a))) {
+          /* already informative */
+        }
+      } else {
+        reply = paReply(text, lang);
+      }
+      appendPaMsg('bot', reply);
+    }, 260);
+  }
+
+  function paReply(q, lang) {
+    const s = q.toLowerCase().trim();
+    const hi = lang === 'hi';
+
+    if (/^(hi|hello|hey|namaste|namaskar|hii+|good morning|good evening)\b/.test(s) || /नमस्ते|नमस्कार|हैलो/.test(q)) {
+      return hi
+        ? 'Namaste! 🙏 Main app control kar sakta hoon.\nExamples:\n• "Bike dikhao" / "Car book karo"\n• "Partner kholo" / "Help kholo"\n• "Kiraya kitna?" / "Status batao"'
+        : 'Hello! 🙏 I can control the app.\nExamples:\n• "Show bikes" / "Book a car"\n• "Open partner" / "Open help"\n• "What is the fare?" / "App status"';
+    }
+
+    if (/rate|fare|kiraya|price|kitna|cost|charge|₹|rs\.?|rupee|किराया|रेट|कितना/.test(s) || /किराया|रेट/.test(q)) {
+      if (/night|raat|रात|10|22/.test(s) || /रात/.test(q)) {
+        return hi
+          ? '🌙 Raat ka rate: ₹45 / km (10 PM – 6 AM)\nDin: ₹40 / km\nBolo "Calculator kholo" hisaab ke liye.'
+          : '🌙 Night rate: ₹45 / km (10 PM – 6 AM)\nDay: ₹40 / km\nSay "Open calculator" for estimates.';
+      }
+      return hi
+        ? '💰 Kiraya: Din ₹40/km · Raat ₹45/km\nPayment ride ke baad (UPI/Cash)\nPlatform fee 15% · Driver 85%\n\nCommand: "Car book karo" ya "Calculator kholo"'
+        : '💰 Fare: Day ₹40/km · Night ₹45/km\nPay after trip (UPI/Cash)\nPlatform fee 15% · Driver 85%\n\nTry: "Book a car" or "Open calculator"';
+    }
+
+    if (/book|booking|reserve|kaise|how to book|ride|trip|बुकिंग|बुक/.test(s) || /बुकिंग|बुक/.test(q)) {
+      return hi
+        ? '📲 Booking:\n1. Vehicle choose / "Bike book karo"\n2. Details bharein\n3. Confirm — abhi payment nahi\n4. Pickup par OTP driver ko do\n5. Ride ke baad pay\n\nMain form khol sakta hoon — bolo kaunsi vehicle.'
+        : '📲 Booking:\n1. Choose vehicle / say "Book a bike"\n2. Fill details\n3. Confirm — no pay now\n4. Give OTP at pickup\n5. Pay after ride\n\nI can open the form — which vehicle?';
+    }
+
+    if (/vehicle|bike|auto|car|bus|truck|gaadi|गाड़ी|types/.test(s) || /बाइक|ऑटो|कार|बस|ट्रक/.test(q)) {
+      return hi
+        ? '🚗 Vehicles (driver ke saath):\nBike · Auto · Car · Bus · Truck\nRate ₹40/km (raat ₹45)\n\nBolo: "Bike dikhao" ya "Truck book karo"'
+        : '🚗 Vehicles (with driver):\nBike · Auto · Car · Bus · Truck\n₹40/km (night ₹45)\n\nSay: "Show bikes" or "Book a truck"';
+    }
+
+    if (/partner|driver|register|kamai|earn|85|पार्टनर|ड्राइवर|रजिस्टर|कमाई/.test(s) || /पार्टनर|ड्राइवर/.test(q)) {
+      return hi
+        ? '🚖 Partner: 85% aapko, 15% platform.\nRegister → Admin verify → Online.\nBolo "Partner kholo" — main page khol doonga.'
+        : '🚖 Partner: you get 85%, platform 15%.\nRegister → Admin verify → Go Online.\nSay "Open partner" — I will open it.';
+    }
+
+    if (/payment|pay|upi|cash|paisa|refund|भुगतान|पेमेंट|यूपीआई|कैश/.test(s) || /पेमेंट|भुगतान/.test(q)) {
+      return hi
+        ? '💳 Payment ride ke baad.\nUPI: rahulk39377-1@oksbi\nCash bhi OK. Issue: 8089156724 / 7970867110'
+        : '💳 Pay after ride.\nUPI: rahulk39377-1@oksbi\nCash OK. Issues: 8089156724 / 7970867110';
+    }
+
+    if (/otp|ओटीपी/.test(s) || /ओटीपी/.test(q)) {
+      return hi
+        ? '🔐 Booking par 4-digit OTP milta hai. Pickup par driver ko do — tabhi drop location khulti hai.'
+        : '🔐 You get a 4-digit OTP on booking. Share at pickup — drop location unlocks after OTP.';
+    }
+
+    if (/contact|support|phone|call|whatsapp|number|sampark|मदद|संपर्क|व्हाट्सएप|कॉल/.test(s) || /संपर्क|मदद/.test(q)) {
+      return hi
+        ? '📞 WhatsApp/Call: 8089156724 · 7970867110\nEmail: rahulk39377@gmail.com\nBolo "Help kholo" page ke liye.'
+        : '📞 WhatsApp/Call: 8089156724 · 7970867110\nEmail: rahulk39377@gmail.com\nSay "Open help" for the page.';
+    }
+
+    if (/cancel|रद्द/.test(s) || /रद्द/.test(q)) {
+      return hi
+        ? '❌ Partner trip par Cancel, ya Help/Admin se sampark. Refund policy ke hisaab se.'
+        : '❌ Cancel on the trip in Partner view, or contact Help/Admin. Refunds follow policy.';
+    }
+
+    if (/commission|fee|15%|hisaab|payout|कमीशन|हिसाब/.test(s) || /कमीशन|हिसाब/.test(q)) {
+      return hi
+        ? '📊 15% platform · 85% partner.\nUPI → company se partner payout.\nCash → partner se commission lena.'
+        : '📊 15% platform · 85% partner.\nUPI → company pays partner.\nCash → collect commission from partner.';
+    }
+
+    if (/thank|dhanyavad|धन्यवाद|shukriya|ok|theek|acha|good/.test(s) || /धन्यवाद|शुक्रिया/.test(q)) {
+      return hi ? 'Theek hai! 😊 Aur command do — main app handle karta hoon.' : 'Glad to help! 😊 Send another command anytime.';
+    }
+
+    if (/kya kar sakte|what can you|help me|madad|commands|control/.test(s)) {
+      return hi
+        ? 'Main ye control kar sakta hoon:\n• Pages: Home, Partner, Admin, Help\n• Filter: Bike/Auto/Car/Bus/Truck dikhao\n• Booking form kholna\n• Calculator, SOS, GPS, Invoice, Referral\n• Status report\n\nExample: "Car book karo" · "Partner kholo" · "Status batao"'
+        : 'I can control:\n• Pages: Home, Partner, Admin, Help\n• Filters: show Bike/Auto/Car/Bus/Truck\n• Open booking forms\n• Calculator, SOS, GPS, Invoice, Referral\n• Status report\n\nExample: "Book a car" · "Open partner" · "App status"';
+    }
+
+    return hi
+      ? 'Samajh nahi aaya. Commands try karo:\n"Bike dikhao" · "Car book karo" · "Partner kholo" · "Kiraya kitna?" · "Status batao" · "Help kholo"'
+      : 'Did not catch that. Try commands:\n"Show bikes" · "Book a car" · "Open partner" · "What is fare?" · "App status" · "Open help"';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setPaLang(paLang);
+  });
+
+  // ══════════════ PWA: SERVICE WORKER REGISTRATION ══════════════
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+
+  function demoOtp(){ const code=Math.floor(100000+Math.random()*900000); alert('Demo OTP: '+code+'\nReal SMS OTP ke liye backend/SMS service connect karni hogi.'); }
+  function requestGPS(){ if(!navigator.geolocation) return alert('Is device/browser mein GPS available nahi hai.'); navigator.geolocation.getCurrentPosition(p=>alert(`📍 Location mil gayi\nLat: ${p.coords.latitude.toFixed(6)}\nLng: ${p.coords.longitude.toFixed(6)}`),e=>alert('GPS permission allow karein.')); }
+  function openKyc(){ document.getElementById('modal-content').innerHTML=`<h2>🛡️ Partner KYC</h2><label>Driving Licence / ID</label><input type="file" accept="image/*,.pdf"><label>Vehicle RC</label><input type="file" accept="image/*,.pdf"><label>Insurance</label><input type="file" accept="image/*,.pdf"><p class="feature-note">Status: <span class="badge-pending">Pending Admin Verification</span></p><button class="btn-confirm" onclick="alert('Documents demo mein submit ho gaye. Admin verification required.');closeModalDirect()">Submit KYC</button>`;document.getElementById('overlay').classList.add('open'); }
+  function openSOS(){ alert('🚨 SOS activated (demo). Real emergency service/helpline integration backend se connect karni hogi.'); }
+  function showInvoice(){ const b=loadBookings()[0]; if(!b) return alert('Abhi koi booking invoice available nahi hai.'); alert(`🧾 BHARAT SAFAR INVOICE\nBooking: ${b.id}\nVehicle: ${b.vehicleType}\nDistance: ${b.distance} km\nTotal: ₹${b.total}\nCommission (15%): ₹${b.fee}\nPartner Payout: ₹${b.driverPayout}`); }
+  function openRating(){ const r=prompt('Trip ko 1-5 stars rating dein:','5'); if(r && /^[1-5]$/.test(r)) alert('⭐ Rating saved: '+r+'/5'); }
+  function openReferral(){ const code='SAFAR'+Math.random().toString(36).slice(2,7).toUpperCase(); navigator.clipboard?.writeText(code); alert('🎁 Referral Code: '+code+'\nCode copy kar diya gaya (agar browser permission ho).'); }
+  function openAdminReport(){ const bs=loadBookings(); const revenue=bs.reduce((s,b)=>s+(Number(b.total)||0),0); const fee=bs.reduce((s,b)=>s+(Number(b.fee)||0),0); const payout=bs.reduce((s,b)=>s+(Number(b.driverPayout)||0),0); alert(`📊 BHARAT SAFAR REPORT\nBookings: ${bs.length}\nGross Revenue: ₹${revenue}\nSafar Commission: ₹${fee}\nPartner Payout: ₹${payout}`); }
+</script>
+</body>
+</html>
